@@ -7,28 +7,7 @@
         MinWidth="1280"
         MinHeight="760"
         WindowStartupLocation="CenterScreen"
-        Background="#EEF3F8">
-
-    <Window.Resources>
-        <Style x:Key="NavButton" TargetType="Button">
-            <Setter Property="Height" Value="46" />
-            <Setter Property="Margin" Value="0,5,0,0" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="Padding" Value="16,0,0,0" />
-            <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#E4EAF2" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontSize" Value="14" />
-        </Style>
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="CornerRadius" Value="18" />
-            <Setter Property="BorderBrush" Value="#DDE6F2" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="18" />
-            <Setter Property="Margin" Value="8" />
-        </Style>
-    </Window.Resources>
+        Background="{StaticResource BrushBackground}">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -36,24 +15,29 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="#DAE3EF" BorderThickness="0,0,1,0">
-            <Grid Margin="16">
+        <!-- SIDEBAR -->
+        <Border Grid.Column="0" Background="{StaticResource BrushSidebarBg}" BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0">
+            <Grid Margin="{StaticResource PaddingMedium}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Border Width="220" Height="190" HorizontalAlignment="Center" Background="White" CornerRadius="18" BorderBrush="#DDE6F2" BorderThickness="1">
+                <!-- LOGO & PROFIL -->
+                <Border Width="220" Height="190" HorizontalAlignment="Center" Background="{StaticResource BrushCardBg}" 
+                        CornerRadius="{StaticResource CornerRadiusLarge}" BorderBrush="#DDE6F2" BorderThickness="1">
                     <Grid>
-                        <Ellipse Width="134" Height="134" Stroke="#111827" StrokeThickness="8" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        <Path Stroke="#1E9BFF" StrokeThickness="7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Data="M 62 108 C 82 55, 139 54, 158 105 C 168 130, 147 151, 118 150 C 94 149, 78 136, 73 122" />
-                        <TextBlock Text="CB" FontSize="34" FontWeight="Black" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Ellipse Width="134" Height="134" Stroke="{StaticResource BrushPrimary}" StrokeThickness="8" 
+                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Text="CB" FontSize="34" FontWeight="Black" Foreground="{StaticResource BrushPrimary}" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
 
+                <!-- NAVIGATION -->
                 <StackPanel Grid.Row="1" Margin="0,20,0,0">
-                    <Button Style="{StaticResource NavButton}" Background="#EAF5FF" BorderBrush="#B7DCFF" Content="Dashboard" />
+                    <Button Style="{StaticResource NavButton}" Background="#EAF5FF" BorderBrush="{StaticResource BrushAccent}" Content="Dashboard" />
                     <Button Style="{StaticResource NavButton}" Content="Plugins" />
                     <Button Style="{StaticResource NavButton}" Content="Windows Tweaks" />
                     <Button Style="{StaticResource NavButton}" Content="System Health" />
@@ -67,16 +51,19 @@
                     <Button Style="{StaticResource NavButton}" Content="Einstellungen" />
                 </StackPanel>
 
-                <Border Grid.Row="2" Background="White" CornerRadius="16" BorderBrush="#DDE6F2" BorderThickness="1" Padding="16">
+                <!-- SYSTEM STATUS PANEL -->
+                <Border Grid.Row="2" Background="{StaticResource BrushCardBg}" CornerRadius="{StaticResource CornerRadiusMedium}" 
+                        BorderBrush="#DDE6F2" BorderThickness="1" Padding="{StaticResource PaddingMedium}">
                     <StackPanel>
-                        <TextBlock Text="SYSTEM STATUS" FontSize="13" FontWeight="Bold" Foreground="#374151" />
-                        <TextBlock Text="Alle Systeme laufen stabil." FontSize="13" Foreground="#16A34A" Margin="0,10,0,0" />
-                        <TextBlock Text="Core Dashboard aktiv" FontSize="12" Foreground="#6B7280" Margin="0,6,0,0" />
+                        <TextBlock Text="SYSTEM STATUS" FontSize="{StaticResource FontSizeSmall}" FontWeight="Bold" Foreground="{StaticResource BrushText}" />
+                        <TextBlock Text="Alle Systeme laufen stabil." FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource BrushSuccess}" Margin="0,10,0,0" />
+                        <TextBlock Text="Core Dashboard aktiv" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource BrushTextLight}" Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
+        <!-- MAIN CONTENT -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="350" />
@@ -84,72 +71,124 @@
                 <RowDefinition Height="74" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="White" BorderBrush="#DAE3EF" BorderThickness="0,0,0,1" ClipToBounds="True">
-                <Grid>
-                    <Grid.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#FFFFFF" Offset="0" />
-                            <GradientStop Color="#F6FAFF" Offset="0.45" />
-                            <GradientStop Color="#E5F2FF" Offset="1" />
-                        </LinearGradientBrush>
-                    </Grid.Background>
-
+            <!-- HEADER -->
+            <Border Grid.Row="0" Background="{StaticResource BrushCardBg}" BorderBrush="{StaticResource BrushBorder}" 
+                    BorderThickness="0,0,0,1" ClipToBounds="True">
+                <Grid Background="{StaticResource GradientHeader}">
+                    <!-- Background Pattern -->
                     <Canvas Opacity="0.08" IsHitTestVisible="False">
-                        <Ellipse Width="150" Height="55" Canvas.Left="10" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="125" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="240" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="355" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="470" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="585" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="700" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="815" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="930" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
-                        <Ellipse Width="150" Height="55" Canvas.Left="1045" Canvas.Top="20" Stroke="#111827" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="10" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="125" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="240" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="355" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="470" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="585" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="700" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="815" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="930" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Ellipse Width="150" Height="55" Canvas.Left="1045" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
                     </Canvas>
 
+                    <!-- Hero Content -->
                     <StackPanel VerticalAlignment="Center" Margin="58,0,0,0">
-                        <TextBlock Text="CrazyBatto" FontSize="70" FontWeight="Black" Foreground="#111827" />
-                        <TextBlock Text="SOFTWARE MANAGER" FontSize="34" FontWeight="Black" Foreground="#1E9BFF" />
-                        <TextBlock Text="FUER GAMING PCs" FontSize="26" FontWeight="Bold" Foreground="#111827" />
-                        <TextBlock Text="Optimieren. Ueberwachen. Diagnostizieren." FontSize="17" Foreground="#374151" Margin="0,20,0,0" />
-                        <TextBlock Text="Alles in einer Software." FontSize="17" Foreground="#374151" Margin="0,5,0,0" />
+                        <TextBlock Text="CrazyBatto" FontSize="{StaticResource FontSizeHero}" FontWeight="Black" Foreground="{StaticResource BrushPrimary}" />
+                        <TextBlock Text="SOFTWARE MANAGER" FontSize="{StaticResource FontSizeXLarge}" FontWeight="Black" Foreground="{StaticResource BrushAccent}" />
+                        <TextBlock Text="FUER GAMING PCs" FontSize="{StaticResource FontSizeLarge}" FontWeight="Bold" Foreground="{StaticResource BrushPrimary}" />
+                        <TextBlock Text="Optimieren. Ueberwachen. Diagnostizieren." FontSize="17" Foreground="{StaticResource BrushText}" Margin="0,20,0,0" />
+                        <TextBlock Text="Alles in einer Software." FontSize="17" Foreground="{StaticResource BrushText}" Margin="0,5,0,0" />
                     </StackPanel>
-
-                    <Canvas HorizontalAlignment="Right" VerticalAlignment="Center" Width="740" Height="310" Margin="0,0,20,0">
-                        <Path Stroke="#111827" StrokeThickness="16" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Data="M 28 180 C 110 28, 266 26, 355 148 C 428 246, 552 232, 664 106" />
-                        <Path Stroke="#1E9BFF" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" Data="M 52 176 C 128 58, 258 55, 340 154 C 410 224, 528 211, 638 113" />
-                        <Polygon Points="628,82 706,100 642,142" Fill="#111827" />
-                        <Ellipse Width="16" Height="16" Canvas.Left="649" Canvas.Top="101" Fill="#1E9BFF" />
-                        <Polygon Points="595,76 613,45 621,91" Fill="#111827" />
-                        <Polygon Points="560,84 573,48 588,97" Fill="#111827" />
-                        <Polygon Points="526,96 535,58 554,108" Fill="#111827" />
-                        <Rectangle Width="214" Height="214" Canvas.Left="360" Canvas.Top="62" RadiusX="24" RadiusY="24" Fill="#F8FAFC" Stroke="#B9CDE2" StrokeThickness="3" />
-                        <Rectangle Width="174" Height="162" Canvas.Left="380" Canvas.Top="84" RadiusX="12" RadiusY="12" Fill="#FFFFFF" Stroke="#D6E4F5" StrokeThickness="2" />
-                        <Ellipse Width="56" Height="56" Canvas.Left="400" Canvas.Top="103" Stroke="#1E9BFF" StrokeThickness="8" Fill="#EEF7FF" />
-                        <Ellipse Width="56" Height="56" Canvas.Left="482" Canvas.Top="103" Stroke="#1E9BFF" StrokeThickness="8" Fill="#EEF7FF" />
-                        <Rectangle Width="136" Height="22" Canvas.Left="400" Canvas.Top="182" RadiusX="8" RadiusY="8" Fill="#111827" />
-                        <Rectangle Width="116" Height="16" Canvas.Left="410" Canvas.Top="213" RadiusX="8" RadiusY="8" Fill="#E7F2FF" Stroke="#1E9BFF" StrokeThickness="2" />
-                        <TextBlock Text="DRAGON PC" Canvas.Left="400" Canvas.Top="252" FontSize="16" FontWeight="Black" Foreground="#111827" />
-                    </Canvas>
                 </Grid>
             </Border>
 
+            <!-- CARDS GRID -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <UniformGrid Columns="3" Margin="12">
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="DASHBOARD" FontSize="18" FontWeight="Black"/><Border Height="138" Margin="0,12,0,12" Background="#111827" CornerRadius="14" Padding="14"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="CPU" Foreground="White" FontWeight="Bold"/><TextBlock Text="37 C" Foreground="White" FontSize="27" FontWeight="Black"/><TextBlock Text="GPU 33 C" Foreground="#C9D7E8" Margin="0,12,0,0"/><TextBlock Text="SoC 45 C" Foreground="#C9D7E8"/></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="CPU Package 61 C" Foreground="White"/><TextBlock Text="GPU Hotspot 58 C" Foreground="White" Margin="0,8,0,0"/><TextBlock Text="RAM 10.8 / 32 GB" Foreground="White" Margin="0,8,0,0"/><TextBlock Text="Uptime 02:47:16" Foreground="#C9D7E8" Margin="0,8,0,0"/></StackPanel></Grid></Border><TextBlock Text="Netzwerk: 23 ms | Download 125 Mbps | Upload 48 Mbps" FontSize="13" Foreground="#374151"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="SYSTEM HEALTH" FontSize="18" FontWeight="Black"/><TextBlock Text="Startup Health Check     OK" Foreground="#16A34A" FontWeight="Bold" Margin="0,18,0,0"/><TextBlock Text="Windows Zustand          GUT" Foreground="#16A34A" FontWeight="Bold" Margin="0,6,0,0"/><TextBlock Text="Fehler letzte 24h        2" Margin="0,6,0,0"/><TextBlock Text="Warnungen letzte 24h     5" Margin="0,6,0,0"/><Button Height="36" Margin="0,28,0,0" Content="DETAILS"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="PLUGINS" FontSize="18" FontWeight="Black"/><TextBlock Text="Plugin-Verwaltung" Margin="0,18,0,0"/><TextBlock Text="Plugin-Marktplatz" Margin="0,6,0,0"/><TextBlock Text="Plugin-Updates" Margin="0,6,0,0"/><Button Height="36" Margin="0,28,0,0" Content="PLUGINS VERWALTEN"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="WINDOWS TWEAKS" FontSize="18" FontWeight="Black"/><TextBlock Text="Windows Optimierung" Margin="0,18,0,0"/><TextBlock Text="Dienste-Verwaltung" Margin="0,6,0,0"/><TextBlock Text="Autostart-Verwaltung" Margin="0,6,0,0"/><Button Height="36" Margin="0,28,0,0" Content="OPTIMIEREN"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="ASUS DIAGNOSE" FontSize="18" FontWeight="Black" Foreground="#B91C1C"/><TextBlock Text="ASUS Diagnose" Margin="0,18,0,0"/><TextBlock Text="BIOS Support" Margin="0,6,0,0"/><TextBlock Text="Armoury Crate Pruefung" Margin="0,6,0,0"/><Button Height="36" Margin="0,28,0,0" Content="DIAGNOSE STARTEN"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="WASSERKUEHLUNG" FontSize="18" FontWeight="Black"/><TextBlock Text="D5 NEXT Monitoring" Margin="0,18,0,0"/><TextBlock Text="high flow NEXT Monitoring" Margin="0,6,0,0"/><TextBlock Text="Wassertemperatur        28.7 C" Margin="0,6,0,0"/><TextBlock Text="Durchflussanzeige       152 l/h" Margin="0,6,0,0"/><Button Height="36" Margin="0,18,0,0" Content="DETAILS ANZEIGEN"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="OVERLAY" FontSize="18" FontWeight="Black"/><TextBlock Text="Desktop Overlay" Margin="0,18,0,0"/><TextBlock Text="Ingame Overlay" Margin="0,6,0,0"/><TextBlock Text="Sensor Overlay" Margin="0,6,0,0"/><Border Height="70" Background="#111827" CornerRadius="10" Margin="0,12,0,0" Padding="12"><TextBlock Text="FPS 144 | GPU 61 C | CPU 55 C | WATER 28.7 C" Foreground="#A7F3D0" FontWeight="Bold" TextWrapping="Wrap"/></Border></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="BIOS UND TREIBER" FontSize="18" FontWeight="Black"/><TextBlock Text="BIOS Version             3102" Margin="0,18,0,0"/><TextBlock Text="BIOS Datum               23.04.2024" Margin="0,6,0,0"/><TextBlock Text="Treiber aktuell          Alle aktuell" Foreground="#16A34A" FontWeight="Bold" Margin="0,6,0,0"/><Button Height="36" Margin="0,28,0,0" Content="PRUEFEN"/></StackPanel></Border>
-                    <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="DEIN SYSTEM" FontSize="18" FontWeight="Black"/><TextBlock Text="ASUS ROG Crosshair X870E Glacial" FontWeight="Bold" Margin="0,18,0,0"/><TextBlock Text="AMD Ryzen 7 9800X3D" Margin="0,6,0,0"/><TextBlock Text="ASUS ROG Astral RTX 5080" Margin="0,6,0,0"/><TextBlock Text="D5 NEXT + high flow NEXT" Margin="0,6,0,0"/><Button Height="36" Margin="0,18,0,0" Content="DETAILS ANZEIGEN"/></StackPanel></Border>
+                    <!-- Dashboard Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="DASHBOARD" />
+                            <Border Height="138" Margin="{StaticResource MarginMedium}" Background="{StaticResource BrushPrimary}" CornerRadius="{StaticResource CornerRadiusSmall}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- System Health Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="SYSTEM HEALTH" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Startup Health Check     OK" Foreground="{StaticResource BrushSuccess}" Margin="0,10,0,0" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Windows Zustand         GUT" Foreground="{StaticResource BrushSuccess}" Margin="0,8,0,0" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Fehlerlogs der letzten 24h    2" Foreground="{StaticResource BrushWarning}" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Plugins Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="PLUGINS" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Plugin-Verwaltung" Margin="0,18,0,0" />
+                            <TextBlock Style="{StaticResource TextSmall}" Text="Plugin-Updates verfügbar: 3" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Windows Tweaks Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="WINDOWS TWEAKS" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Windows Optimierung" Margin="0,18,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ASUS Diagnose Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="ASUS DIAGNOSE" Foreground="{StaticResource BrushError}" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="ASUS Diagnose" Margin="0,18,0,0" />
+                            <TextBlock Style="{StaticResource TextSmall}" Text="Fehler erkannt!" Foreground="{StaticResource BrushError}" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Wasserkuehlung Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="WASSERKUEHLUNG" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="D5 NEXT Monitoring" Margin="0,18,0,0" />
+                            <TextBlock Style="{StaticResource TextSmall}" Text="Kühlflüssigkeit: 45°C" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Overlay Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="OVERLAY" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="Desktop Overlay" Margin="0,18,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- BIOS & Treiber Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="BIOS UND TREIBER" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="BIOS Version             3102" Margin="0,18,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- System Info Card -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TextHeading}" Text="DEIN SYSTEM" />
+                            <TextBlock Style="{StaticResource TextBody}" Text="ASUS ROG Crosshair X870E Glacial" FontWeight="Bold" Margin="0,18,0,0" />
+                            <TextBlock Style="{StaticResource TextSmall}" Text="AMD Ryzen 7 9800X3D" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
                 </UniformGrid>
             </ScrollViewer>
 
-            <Border Grid.Row="2" Background="#111827" CornerRadius="28,28,0,0" Margin="14,0,14,0" Padding="28,10">
-                <TextBlock Text="CrazyBatto SOFTWARE MANAGER - EIN TOOL FUER DEIN GAMING SETUP" Foreground="White" FontSize="22" FontWeight="Black" VerticalAlignment="Center" />
+            <!-- FOOTER -->
+            <Border Grid.Row="2" Background="{StaticResource BrushPrimary}" CornerRadius="{StaticResource CornerRadiusLarger},28,0,0" 
+                    Margin="14,0,14,0" Padding="{StaticResource PaddingLarge},10">
+                <TextBlock Style="{StaticResource TextTitle}" 
+                           Text="CrazyBatto SOFTWARE MANAGER - EIN TOOL FUER DEIN GAMING SETUP" 
+                           VerticalAlignment="Center" />
             </Border>
         </Grid>
     </Grid>
