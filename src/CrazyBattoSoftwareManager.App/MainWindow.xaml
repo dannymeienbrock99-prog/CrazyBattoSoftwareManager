@@ -1,0 +1,141 @@
+<Window x:Class="CrazyBattoSoftwareManager.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CrazyBatto SOFTWARE MANAGER"
+        Width="1680"
+        Height="920"
+        MinWidth="1280"
+        MinHeight="760"
+        WindowStartupLocation="CenterScreen"
+        Background="#F4F6FA">
+
+    <Window.Resources>
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Width" Value="330" />
+            <Setter Property="Height" Value="190" />
+            <Setter Property="Margin" Value="10" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="22" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="360" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="White" ClipToBounds="True" BorderBrush="#E2E6EC" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFFFFF" Offset="0" />
+                        <GradientStop Color="#F4F8FF" Offset="0.55" />
+                        <GradientStop Color="#EAF3FF" Offset="1" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+
+                <Canvas Opacity="0.10" IsHitTestVisible="False">
+                    <Ellipse Width="120" Height="52" Canvas.Left="20" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="110" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="200" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="290" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="380" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="470" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="560" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="650" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="740" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="830" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="920" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="1010" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="1100" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="1190" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                    <Ellipse Width="120" Height="52" Canvas.Left="1280" Canvas.Top="26" Stroke="#111827" StrokeThickness="2" />
+                </Canvas>
+
+                <StackPanel VerticalAlignment="Center" Margin="52,0,0,0">
+                    <TextBlock Text="CRAZY_BATTO" FontSize="68" FontWeight="Black" Foreground="#111827" />
+                    <TextBlock Text="SOFTWARE MANAGER" FontSize="40" FontWeight="Bold" Foreground="#1F2937" Margin="0,4,0,0" />
+                    <TextBlock Text="FOR GAMING PCS" FontSize="26" FontWeight="SemiBold" Foreground="#0078FF" Margin="0,12,0,0" />
+                    <TextBlock Text="Core Dashboard | Hardware Monitoring | Plugin System" FontSize="16" Foreground="#4B5563" Margin="0,18,0,0" />
+                </StackPanel>
+
+                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Width="560" Height="240" Margin="0,0,58,0" Background="#F8FAFC" BorderBrush="#D8E6F8" BorderThickness="1" CornerRadius="28">
+                    <Grid>
+                        <TextBlock Text="DRAGON PC" FontSize="54" FontWeight="Black" Foreground="#111827" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Text="asset slot: dragon-pc.png" FontSize="15" Foreground="#0078FF" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,42" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="270" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="White" BorderBrush="#E2E6EC" BorderThickness="0,0,1,0">
+                <StackPanel Margin="18">
+                    <TextBlock Text="CrazyBatto" FontSize="24" FontWeight="Black" />
+                    <TextBlock Text="SOFTWARE MANAGER" FontSize="13" Margin="0,2,0,24" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Dashboard" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Hardware" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Sensoren" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Plugins" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Logs" />
+                    <Button Height="46" Margin="0,6,0,0" Content="Einstellungen" />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1">
+                <StackPanel Margin="28">
+                    <TextBlock Text="Dashboard" FontSize="36" FontWeight="Black" Margin="0,0,0,20" />
+                    <WrapPanel>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="CPU" FontSize="24" FontWeight="Black" />
+                                <TextBlock Text="Core noch nicht verbunden" Margin="0,12,0,0" />
+                                <Separator Margin="0,18,0,12" />
+                                <TextBlock Text="Auslastung: -- %" />
+                                <TextBlock Text="Temperatur: -- C" Margin="0,6,0,0" />
+                                <TextBlock Text="Takt: -- GHz" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="GPU" FontSize="24" FontWeight="Black" />
+                                <TextBlock Text="Core noch nicht verbunden" Margin="0,12,0,0" />
+                                <Separator Margin="0,18,0,12" />
+                                <TextBlock Text="Auslastung: -- %" />
+                                <TextBlock Text="Temperatur: -- C" Margin="0,6,0,0" />
+                                <TextBlock Text="VRAM: -- GB" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="RAM" FontSize="24" FontWeight="Black" />
+                                <TextBlock Text="Core noch nicht verbunden" Margin="0,12,0,0" />
+                                <Separator Margin="0,18,0,12" />
+                                <TextBlock Text="Auslastung: -- %" />
+                                <TextBlock Text="Belegt: -- GB" Margin="0,6,0,0" />
+                                <TextBlock Text="Gesamt: -- GB" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Mainboard" FontSize="24" FontWeight="Black" />
+                                <TextBlock Text="WMI noch nicht verbunden" Margin="0,12,0,0" />
+                                <Separator Margin="0,18,0,12" />
+                                <TextBlock Text="Hersteller: --" />
+                                <TextBlock Text="Modell: --" Margin="0,6,0,0" />
+                                <TextBlock Text="BIOS: --" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
