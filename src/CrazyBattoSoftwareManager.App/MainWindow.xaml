@@ -71,7 +71,7 @@
                 <RowDefinition Height="74" />
             </Grid.RowDefinitions>
 
-            <!-- HEADER -->
+            <!-- HEADER WITH DRAGON -->
             <Border Grid.Row="0" Background="{StaticResource BrushCardBg}" BorderBrush="{StaticResource BrushBorder}" 
                     BorderThickness="0,0,0,1" ClipToBounds="True">
                 <Grid Background="{StaticResource GradientHeader}">
@@ -97,6 +97,52 @@
                         <TextBlock Text="Optimieren. Ueberwachen. Diagnostizieren." FontSize="17" Foreground="{StaticResource BrushText}" Margin="0,20,0,0" />
                         <TextBlock Text="Alles in einer Software." FontSize="17" Foreground="{StaticResource BrushText}" Margin="0,5,0,0" />
                     </StackPanel>
+
+                    <!-- DRAGON DECORATION RIGHT -->
+                    <Canvas HorizontalAlignment="Right" VerticalAlignment="Center" Width="450" Height="280" Margin="0,0,30,0" Opacity="0.85">
+                        <!-- Dragon Head -->
+                        <Ellipse Width="120" Height="100" Canvas.Left="280" Canvas.Top="20" Stroke="{StaticResource BrushPrimary}" StrokeThickness="3" Fill="#F0F4FF" />
+                        
+                        <!-- Dragon Snout -->
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="3" Fill="Transparent" 
+                              Data="M 340 60 L 380 50 L 390 70 L 380 90 Z" />
+                        
+                        <!-- Dragon Eyes -->
+                        <Ellipse Width="12" Height="12" Canvas.Left="300" Canvas.Top="45" Fill="{StaticResource BrushAccent}" />
+                        <Ellipse Width="12" Height="12" Canvas.Left="330" Canvas.Top="35" Fill="{StaticResource BrushAccent}" />
+                        
+                        <!-- Dragon Horns -->
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="2.5" 
+                              Data="M 300 15 Q 290 0, 295 -15 M 340 5 Q 350 -10, 360 -20" />
+                        
+                        <!-- Dragon Neck to Body -->
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="3" Fill="Transparent"
+                              Data="M 320 115 Q 280 140, 260 180 Q 240 220, 200 240" StrokeLineCap="Round" />
+                        
+                        <!-- Dragon Wings -->
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="2.5" Fill="#E5F2FF" Opacity="0.6"
+                              Data="M 310 120 Q 280 100, 240 80 Q 220 100, 250 140 Q 280 130, 310 120" />
+                        
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="2.5" Fill="#E5F2FF" Opacity="0.6"
+                              Data="M 330 110 Q 370 95, 410 85 Q 420 110, 390 145 Q 360 125, 330 110" />
+                        
+                        <!-- Dragon Body Curves -->
+                        <Path Stroke="{StaticResource BrushAccent}" StrokeThickness="2" Fill="Transparent"
+                              Data="M 200 240 Q 150 260, 120 200 Q 100 180, 80 220" StrokeLineCap="Round" StrokeLineJoin="Round" />
+                        
+                        <!-- Dragon Tail -->
+                        <Path Stroke="{StaticResource BrushPrimary}" StrokeThickness="3" Fill="Transparent"
+                              Data="M 80 220 Q 40 240, 20 280 Q 10 290, 30 300 Q 50 280, 80 260" StrokeLineCap="Round" />
+                        
+                        <!-- Tail Accent (Blue) -->
+                        <Path Stroke="{StaticResource BrushAccent}" StrokeThickness="2" Fill="Transparent"
+                              Data="M 70 230 Q 50 250, 35 285" StrokeLineCap="Round" />
+                        
+                        <!-- Spikes along back -->
+                        <Line X1="270" Y1="160" X2="260" Y2="140" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Line X1="230" Y1="200" X2="220" Y2="175" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                        <Line X1="150" Y1="250" X2="140" Y2="225" Stroke="{StaticResource BrushPrimary}" StrokeThickness="2" />
+                    </Canvas>
                 </Grid>
             </Border>
 
