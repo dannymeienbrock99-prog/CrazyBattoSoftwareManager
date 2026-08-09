@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: solelink-${{ github.ref }}
@@ -27,80 +27,6 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
-
-      - name: Erkannte Quellcodefehler korrigieren
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          build_file = Path("apps/SoleLinkDiagnostic/app/build.gradle.kts")
-          build_source = build_file.read_text(encoding="utf-8")
-
-          nested_kotlin = re.compile(
-              r'(?ms)^ {4}kotlin\s*\{\s*compilerOptions\s*\{\s*'
-              r'jvmTarget\.set\(org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget\.JVM_17\)\s*'
-              r'\}\s*\}\s*'
-          )
-          build_source, _ = nested_kotlin.subn("", build_source, count=1)
-          build_source = build_source.replace("\nbuildFeatures {", "\n    buildFeatures {")
-
-          top_level_kotlin = (
-              "kotlin {\n"
-              "    compilerOptions {\n"
-              "        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)\n"
-              "    }\n"
-              "}\n\n"
-          )
-          if top_level_kotlin not in build_source:
-              marker = "\ndependencies {\n"
-              if marker not in build_source:
-                  raise SystemExit("Dependencies-Block nicht gefunden")
-              build_source = build_source.replace(
-                  marker,
-                  "\n" + top_level_kotlin + "dependencies {\n",
-                  1,
-              )
-          build_file.write_text(build_source, encoding="utf-8")
-
-          gatt_file = Path(
-              "apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt"
-          )
-          gatt_source = gatt_file.read_text(encoding="utf-8")
-          old_battery = (
-              "        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && "
-              "!value.isNullOrEmpty()) {\n"
-              "            batteryPercent = value[0].toInt() and 0xFF\n"
-              "        }\n"
-          )
-          new_battery = (
-              "        val firstValueByte = value?.firstOrNull()\n"
-              "        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && "
-              "firstValueByte != null) {\n"
-              "            batteryPercent = firstValueByte.toInt() and 0xFF\n"
-              "        }\n"
-          )
-          if old_battery in gatt_source:
-              gatt_source = gatt_source.replace(old_battery, new_battery, 1)
-          elif new_battery not in gatt_source:
-              raise SystemExit("Unbekannter Batterie-Auswertungsblock")
-          gatt_file.write_text(gatt_source, encoding="utf-8")
-          PY
-
-      - name: Korrekturen in den Branch übernehmen
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/adapt-local-diagnostic'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            apps/SoleLinkDiagnostic/app/build.gradle.kts \
-            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt
-          if ! git diff --cached --quiet; then
-            git commit -m "Fix SoleLink Android compilation [skip ci]"
-            git push
-          fi
 
       - name: JDK 17 einrichten
         uses: actions/setup-java@v4
