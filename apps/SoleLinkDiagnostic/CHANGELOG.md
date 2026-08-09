@@ -1,5 +1,19 @@
 # Änderungsprotokoll
 
+## 0.4.1
+
+- Status 19 (`0x13`) wird korrekt als durch die Gegenstelle beendete Verbindung erklärt
+- maximal zwei automatische Wiederverbindungsversuche nach 2 und 5 Sekunden
+- sichtbare Aufforderung, während der Wiederverbindung eine Seitentaste am Schuh zu drücken
+- verzögerte Dienstsuche, damit sich die BLE-Verbindung zunächst stabilisieren kann
+- langsamere GATT-Operationsfolge für den gespeicherten Schuh
+- proprietäre Benachrichtigungen werden beim ersten Schuhkontakt nicht mehr automatisch aktiviert
+- beim gespeicherten Schuh werden zunächst nur sichere Standardwerte gelesen
+- veraltete GATT-Callbacks früherer Verbindungen werden ignoriert und geschlossen
+- Verbindungsstatus und Wiederholungsversuch werden in Diagnoseexport Schema 3 gespeichert
+- Tests für Status-19-Erkennung und Wiederverbindungslogik ergänzt
+- VersionCode auf 5 und Version auf 0.4.1 erhöht
+
 ## 0.4.0
 
 - rechter Schuh dauerhaft als `005-BQ5397-001` / `C0:04:6F:A7:46:0D` hinterlegt
