@@ -5,7 +5,6 @@ on:
     branches:
       - feature/adapt-local-diagnostic
     paths:
-      - "apps/SoleLinkDiagnostic-bootstrap/**"
       - "apps/SoleLinkDiagnostic/**"
       - ".github/workflows/solelink-android.yml"
   pull_request:
@@ -17,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: solelink-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,42 +28,79 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v4
 
-      - name: Projektquelle beim ersten Lauf wiederherstellen
-        if: ${{ hashFiles('apps/SoleLinkDiagnostic/settings.gradle.kts') == '' }}
-        shell: bash
-        run: |
-          mkdir -p /tmp/solelink
-          cat apps/SoleLinkDiagnostic-bootstrap/b64part* \
-            | base64 --decode \
-            > /tmp/solelink/SoleLinkDiagnostic-source.zip
-          unzip -q /tmp/solelink/SoleLinkDiagnostic-source.zip -d apps
-          test -f apps/SoleLinkDiagnostic/settings.gradle.kts
-
-      - name: Kotlin-Compilerziel aktualisieren
+      - name: Erkannte Quellcodefehler korrigieren
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
-          path = Path("apps/SoleLinkDiagnostic/app/build.gradle.kts")
-          source = path.read_text(encoding="utf-8")
-          pattern = re.compile(
-              r'(?ms)^ {4}kotlinOptions\s*\{\s*jvmTarget\s*=\s*"17"\s*\}\s*'
+          build_file = Path("apps/SoleLinkDiagnostic/app/build.gradle.kts")
+          build_source = build_file.read_text(encoding="utf-8")
+
+          nested_kotlin = re.compile(
+              r'(?ms)^ {4}kotlin\s*\{\s*compilerOptions\s*\{\s*'
+              r'jvmTarget\.set\(org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget\.JVM_17\)\s*'
+              r'\}\s*\}\s*'
           )
-          replacement = (
-              "    kotlin {\n"
-              "        compilerOptions {\n"
-              "            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)\n"
+          build_source, _ = nested_kotlin.subn("", build_source, count=1)
+          build_source = build_source.replace("\nbuildFeatures {", "\n    buildFeatures {")
+
+          top_level_kotlin = (
+              "kotlin {\n"
+              "    compilerOptions {\n"
+              "        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)\n"
+              "    }\n"
+              "}\n\n"
+          )
+          if top_level_kotlin not in build_source:
+              marker = "\ndependencies {\n"
+              if marker not in build_source:
+                  raise SystemExit("Dependencies-Block nicht gefunden")
+              build_source = build_source.replace(
+                  marker,
+                  "\n" + top_level_kotlin + "dependencies {\n",
+                  1,
+              )
+          build_file.write_text(build_source, encoding="utf-8")
+
+          gatt_file = Path(
+              "apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt"
+          )
+          gatt_source = gatt_file.read_text(encoding="utf-8")
+          old_battery = (
+              "        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && "
+              "!value.isNullOrEmpty()) {\n"
+              "            batteryPercent = value[0].toInt() and 0xFF\n"
               "        }\n"
-              "    }\n\n"
           )
-          source, changes = pattern.subn(replacement, source, count=1)
-          if changes:
-              path.write_text(source, encoding="utf-8")
-          elif "compilerOptions" not in source:
-              raise SystemExit("Unbekannte Kotlin-JVM-Konfiguration")
+          new_battery = (
+              "        val firstValueByte = value?.firstOrNull()\n"
+              "        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && "
+              "firstValueByte != null) {\n"
+              "            batteryPercent = firstValueByte.toInt() and 0xFF\n"
+              "        }\n"
+          )
+          if old_battery in gatt_source:
+              gatt_source = gatt_source.replace(old_battery, new_battery, 1)
+          elif new_battery not in gatt_source:
+              raise SystemExit("Unbekannter Batterie-Auswertungsblock")
+          gatt_file.write_text(gatt_source, encoding="utf-8")
           PY
+
+      - name: Korrekturen in den Branch übernehmen
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/adapt-local-diagnostic'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/SoleLinkDiagnostic/app/build.gradle.kts \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt
+          if ! git diff --cached --quiet; then
+            git commit -m "Fix SoleLink Android compilation [skip ci]"
+            git push
+          fi
 
       - name: JDK 17 einrichten
         uses: actions/setup-java@v4
@@ -75,27 +115,8 @@ jobs:
         shell: bash
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Gradle 8.13 einrichten
+      - name: Gradle-Cache einrichten
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.13"
-
-      - name: Gradle Wrapper erzeugen
-        working-directory: apps/SoleLinkDiagnostic
-        run: gradle wrapper --gradle-version 8.13
-
-      - name: Vollständige Quelle in den Branch übernehmen
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/adapt-local-diagnostic'
-        shell: bash
-        run: |
-          rm -rf apps/SoleLinkDiagnostic-bootstrap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/SoleLinkDiagnostic apps/SoleLinkDiagnostic-bootstrap
-          if ! git diff --cached --quiet; then
-            git commit -m "Add complete SoleLink Android project and wrapper [skip ci]"
-            git push
-          fi
 
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
@@ -111,7 +132,6 @@ jobs:
           cd apps
           zip -qr ../SoleLinkDiagnostic-complete.zip SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
-            -x "SoleLinkDiagnostic/.gradle-bootstrap/*" \
             -x "SoleLinkDiagnostic/app/build/*"
 
       - name: APK und Projekt hochladen
