@@ -64,4 +64,6 @@ data class GattState(
     val services: List<ServiceSnapshot> = emptyList(),
     val batteryPercent: Int? = null,
     val lastError: String? = null,
+    val lastDisconnectStatus: Int? = null,
+    val reconnectAttempt: Int = 0,
 )
