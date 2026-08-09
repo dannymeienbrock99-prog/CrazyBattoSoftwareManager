@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.os.Build
@@ -31,8 +32,13 @@ class GattInspector(
     val state: StateFlow<GattState> = _state.asStateFlow()
 
     private var bluetoothGatt: BluetoothGatt? = null
+    private var requestedDevice: BluetoothDevice? = null
     private var requestedDeviceName: String? = null
     private var explicitDisconnect = false
+    private var reconnectAttempts = 0
+    private var reconnectRunnable: Runnable? = null
+    private var connectionEpoch = 0L
+    private var conservativeShoeInspection = false
 
     private val pendingOperations = ArrayDeque<GattOperation>()
     private var currentOperation: GattOperation? = null
@@ -56,51 +62,23 @@ class GattInspector(
 
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-            when (newState) {
-                android.bluetooth.BluetoothProfile.STATE_CONNECTED -> {
-                    bluetoothGatt = gatt
-                    _state.value = _state.value.copy(
-                        status = ConnectionStatus.CONNECTED,
-                        deviceAddress = gatt.device.address,
-                        deviceName = requestedDeviceName,
-                        lastError = null,
-                    )
-                    log(
-                        LogLevel.INFO,
-                        "GATT",
-                        "Verbunden mit ${requestedDeviceName ?: gatt.device.address}. Dienste werden gesucht.",
-                    )
-                    discoverServices(gatt)
-                }
-
-                android.bluetooth.BluetoothProfile.STATE_DISCONNECTED -> {
-                    cancelOperations()
-                    val message = if (explicitDisconnect) {
-                        "Bluetooth-Verbindung wurde getrennt."
-                    } else {
-                        "Bluetooth-Verbindung wurde unerwartet getrennt (Status $status)."
-                    }
-                    log(
-                        if (explicitDisconnect) LogLevel.INFO else LogLevel.WARNING,
-                        "GATT",
-                        message,
-                    )
-                    _state.value = _state.value.copy(
-                        status = ConnectionStatus.DISCONNECTED,
-                        lastError = if (explicitDisconnect) null else message,
-                    )
-                    closeGatt(gatt)
-                }
+            if (gatt !== bluetoothGatt) {
+                closeGatt(gatt)
+                return
             }
 
-            if (status != BluetoothGatt.GATT_SUCCESS &&
-                newState != android.bluetooth.BluetoothProfile.STATE_DISCONNECTED
-            ) {
-                fail("GATT-Verbindungsfehler: Status $status.")
+            when (newState) {
+                BluetoothProfile.STATE_CONNECTED -> handleConnected(gatt, status)
+                BluetoothProfile.STATE_DISCONNECTED -> handleDisconnected(gatt, status)
+                else -> if (status != BluetoothGatt.GATT_SUCCESS) {
+                    fail("GATT-Verbindungsfehler: Status $status.")
+                }
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (gatt !== bluetoothGatt) return
+
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 fail("GATT-Dienste konnten nicht gelesen werden: Status $status.")
                 return
@@ -118,6 +96,16 @@ class GattInspector(
                 "${services.size} Dienste mit " +
                     "${services.sumOf { it.characteristics.size }} Merkmalen gefunden.",
             )
+
+            if (conservativeShoeInspection) {
+                log(
+                    LogLevel.INFO,
+                    "SCHUH",
+                    "Schonender Inspektionsmodus aktiv: Es werden nur sichere Standardwerte " +
+                        "gelesen und keine proprietären Benachrichtigungen aktiviert.",
+                )
+            }
+
             queueSafeInspection(gatt)
         }
 
@@ -127,6 +115,7 @@ class GattInspector(
             characteristic: BluetoothGattCharacteristic,
             status: Int,
         ) {
+            if (gatt !== bluetoothGatt) return
             handleCharacteristicRead(
                 characteristic = characteristic,
                 value = characteristic.value ?: byteArrayOf(),
@@ -140,6 +129,7 @@ class GattInspector(
             value: ByteArray,
             status: Int,
         ) {
+            if (gatt !== bluetoothGatt) return
             handleCharacteristicRead(characteristic, value, status)
         }
 
@@ -148,6 +138,7 @@ class GattInspector(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
         ) {
+            if (gatt !== bluetoothGatt) return
             handleCharacteristicChanged(
                 characteristic,
                 characteristic.value ?: byteArrayOf(),
@@ -159,6 +150,7 @@ class GattInspector(
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray,
         ) {
+            if (gatt !== bluetoothGatt) return
             handleCharacteristicChanged(characteristic, value)
         }
 
@@ -167,6 +159,8 @@ class GattInspector(
             descriptor: BluetoothGattDescriptor,
             status: Int,
         ) {
+            if (gatt !== bluetoothGatt) return
+
             val operation = currentOperation
             if (operation is GattOperation.EnableNotifications) {
                 val enabled = status == BluetoothGatt.GATT_SUCCESS
@@ -192,28 +186,66 @@ class GattInspector(
 
     @SuppressLint("MissingPermission")
     fun connect(device: BluetoothDevice, advertisedName: String?) {
-        disconnect()
-        explicitDisconnect = false
+        requestedDevice = device
         requestedDeviceName = advertisedName
+        explicitDisconnect = false
+        reconnectAttempts = 0
+        cancelReconnect()
+        beginConnection(device, advertisedName, isRetry = false)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun beginConnection(
+        device: BluetoothDevice,
+        advertisedName: String?,
+        isRetry: Boolean,
+    ) {
+        cancelReconnect()
+        closeCurrentGattForReplacement()
+        cancelOperations()
+
+        connectionEpoch++
+        conservativeShoeInspection = device.address.equals(
+            KnownShoeRegistry.RIGHT_SHOE_ADDRESS,
+            ignoreCase = true,
+        ) || advertisedName?.contains(
+            KnownShoeRegistry.ADVERTISED_MODEL_NAME,
+            ignoreCase = true,
+        ) == true
+
         _state.value = GattState(
             status = ConnectionStatus.CONNECTING,
             deviceName = advertisedName,
             deviceAddress = device.address,
+            lastError = if (isRetry) {
+                "Wiederverbindung zum Schuh wird aufgebaut."
+            } else {
+                null
+            },
+            reconnectAttempt = reconnectAttempts,
         )
+
+        val bondText = when (device.bondState) {
+            BluetoothDevice.BOND_BONDED -> "gekoppelt"
+            BluetoothDevice.BOND_BONDING -> "Kopplung läuft"
+            else -> "nicht systemgekoppelt"
+        }
         log(
             LogLevel.INFO,
             "GATT",
-            "Verbindung zu ${advertisedName ?: device.address} wird aufgebaut.",
+            "Verbindung zu ${advertisedName ?: device.address} wird aufgebaut " +
+                "($bondText${if (isRetry) ", Wiederholungsversuch $reconnectAttempts" else ""}).",
         )
 
         try {
-            bluetoothGatt = device.connectGatt(
+            val newGatt = device.connectGatt(
                 appContext,
                 false,
                 callback,
                 BluetoothDevice.TRANSPORT_LE,
             )
-            if (bluetoothGatt == null) {
+            bluetoothGatt = newGatt
+            if (newGatt == null) {
                 fail("Android konnte kein GATT-Verbindungsobjekt erstellen.")
             }
         } catch (securityException: SecurityException) {
@@ -224,25 +256,180 @@ class GattInspector(
     }
 
     @SuppressLint("MissingPermission")
-    fun disconnect() {
-        val gatt = bluetoothGatt ?: return
-        explicitDisconnect = true
-        cancelOperations()
+    private fun handleConnected(gatt: BluetoothGatt, status: Int) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            handleDisconnected(gatt, status)
+            return
+        }
+
+        _state.value = _state.value.copy(
+            status = ConnectionStatus.CONNECTED,
+            deviceAddress = gatt.device.address,
+            deviceName = requestedDeviceName,
+            lastError = null,
+            lastDisconnectStatus = null,
+            reconnectAttempt = reconnectAttempts,
+        )
+        log(
+            LogLevel.INFO,
+            "GATT",
+            "Verbunden mit ${requestedDeviceName ?: gatt.device.address}. " +
+                "Die Verbindung stabilisiert sich kurz vor der Dienstsuche.",
+        )
+
         try {
-            gatt.disconnect()
+            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
         } catch (_: SecurityException) {
-            closeGatt(gatt)
+            // Die Verbindung funktioniert auch ohne Prioritätswechsel weiter.
+        }
+
+        val epoch = connectionEpoch
+        val delay = if (conservativeShoeInspection) {
+            SHOE_SERVICE_DISCOVERY_DELAY_MILLIS
+        } else {
+            DEFAULT_SERVICE_DISCOVERY_DELAY_MILLIS
+        }
+        handler.postDelayed(
+            {
+                if (
+                    epoch == connectionEpoch &&
+                    gatt === bluetoothGatt &&
+                    _state.value.status == ConnectionStatus.CONNECTED
+                ) {
+                    discoverServices(gatt)
+                }
+            },
+            delay,
+        )
+    }
+
+    private fun handleDisconnected(gatt: BluetoothGatt, status: Int) {
+        val userRequestedDisconnect = explicitDisconnect
+        cancelOperations()
+        connectionEpoch++
+        closeGatt(gatt)
+
+        if (userRequestedDisconnect) {
+            log(LogLevel.INFO, "GATT", "Bluetooth-Verbindung wurde getrennt.")
+            _state.value = _state.value.copy(
+                status = ConnectionStatus.DISCONNECTED,
+                lastError = null,
+                lastDisconnectStatus = status,
+                reconnectAttempt = 0,
+            )
+            return
+        }
+
+        val shouldRetry = conservativeShoeInspection &&
+            GattDisconnectReason.canRetryAutomatically(status) &&
+            reconnectAttempts < MAX_RECONNECT_ATTEMPTS &&
+            requestedDevice != null
+
+        if (shouldRetry) {
+            scheduleReconnect(status)
+            return
+        }
+
+        val message = GattDisconnectReason.finalMessage(
+            status = status,
+            knownShoe = conservativeShoeInspection,
+        )
+        log(LogLevel.WARNING, "GATT", message)
+        _state.value = _state.value.copy(
+            status = ConnectionStatus.DISCONNECTED,
+            lastError = message,
+            lastDisconnectStatus = status,
+            reconnectAttempt = reconnectAttempts,
+        )
+    }
+
+    private fun scheduleReconnect(status: Int) {
+        val device = requestedDevice ?: return
+        reconnectAttempts++
+        val delay = RECONNECT_DELAYS_MILLIS[
+            (reconnectAttempts - 1).coerceIn(RECONNECT_DELAYS_MILLIS.indices)
+        ]
+        val message = GattDisconnectReason.retryMessage(
+            status = status,
+            attempt = reconnectAttempts,
+            maximumAttempts = MAX_RECONNECT_ATTEMPTS,
+            delayMillis = delay,
+        )
+
+        log(LogLevel.WARNING, "GATT", message)
+        _state.value = _state.value.copy(
+            status = ConnectionStatus.CONNECTING,
+            lastError = message,
+            lastDisconnectStatus = status,
+            reconnectAttempt = reconnectAttempts,
+        )
+
+        cancelReconnect()
+        val scheduledEpoch = ++connectionEpoch
+        reconnectRunnable = Runnable {
+            reconnectRunnable = null
+            if (
+                explicitDisconnect ||
+                scheduledEpoch != connectionEpoch ||
+                requestedDevice?.address != device.address
+            ) {
+                return@Runnable
+            }
+            beginConnection(device, requestedDeviceName, isRetry = true)
+        }.also { runnable ->
+            handler.postDelayed(runnable, delay)
         }
     }
 
     @SuppressLint("MissingPermission")
+    fun disconnect() {
+        explicitDisconnect = true
+        reconnectAttempts = 0
+        cancelReconnect()
+        cancelOperations()
+        connectionEpoch++
+
+        val gatt = bluetoothGatt
+        bluetoothGatt = null
+        if (gatt != null) {
+            try {
+                gatt.disconnect()
+            } catch (_: SecurityException) {
+                // Das Objekt wird unten trotzdem geschlossen.
+            }
+            closeGatt(gatt)
+        }
+
+        _state.value = _state.value.copy(
+            status = ConnectionStatus.DISCONNECTED,
+            lastError = null,
+            reconnectAttempt = 0,
+        )
+        log(LogLevel.INFO, "GATT", "Bluetooth-Verbindung wurde getrennt.")
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun closeCurrentGattForReplacement() {
+        val previousGatt = bluetoothGatt ?: return
+        bluetoothGatt = null
+        try {
+            previousGatt.disconnect()
+        } catch (_: SecurityException) {
+            // Direktes Schließen verhindert veraltete Callback-Rennen.
+        }
+        closeGatt(previousGatt)
+    }
+
+    @SuppressLint("MissingPermission")
     private fun discoverServices(gatt: BluetoothGatt) {
+        if (gatt !== bluetoothGatt) return
+
         _state.value = _state.value.copy(status = ConnectionStatus.DISCOVERING)
         try {
             if (!gatt.discoverServices()) {
                 fail("Android konnte die GATT-Dienstsuche nicht starten.")
             }
-        } catch (securityException: SecurityException) {
+        } catch (_: SecurityException) {
             fail("Dienstsuche ohne Bluetooth-Berechtigung nicht möglich.")
         }
     }
@@ -270,7 +457,12 @@ class GattInspector(
         cancelOperations()
         gatt.services.forEach { service ->
             service.characteristics.forEach { characteristic ->
-                if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0) {
+                val readable =
+                    characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0
+                val safeRead = !conservativeShoeInspection ||
+                    characteristic.uuid in SAFE_SHOE_READ_CHARACTERISTICS
+
+                if (readable && safeRead) {
                     pendingOperations.add(
                         GattOperation.Read(service.uuid, characteristic.uuid),
                     )
@@ -281,8 +473,14 @@ class GattInspector(
                 val supportsNotification =
                     characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0
                 val hasCccd = characteristic.getDescriptor(CLIENT_CHARACTERISTIC_CONFIG) != null
+                val safeNotification = !conservativeShoeInspection ||
+                    characteristic.uuid == BATTERY_LEVEL_CHARACTERISTIC
 
-                if (hasCccd && (supportsNotification || supportsIndication)) {
+                if (
+                    hasCccd &&
+                    safeNotification &&
+                    (supportsNotification || supportsIndication)
+                ) {
                     pendingOperations.add(
                         GattOperation.EnableNotifications(
                             serviceUuid = service.uuid,
@@ -325,7 +523,7 @@ class GattInspector(
                 "GATT",
                 "Merkmal ${operation.characteristicUuid} ist nicht mehr verfügbar.",
             )
-            handler.post(::runNextOperation)
+            scheduleNextOperation()
             return
         }
 
@@ -338,7 +536,7 @@ class GattInspector(
                 is GattOperation.EnableNotifications ->
                     enableNotifications(gatt, characteristic, operation.indication)
             }
-        } catch (securityException: SecurityException) {
+        } catch (_: SecurityException) {
             log(
                 LogLevel.ERROR,
                 "GATT",
@@ -509,17 +707,47 @@ class GattInspector(
     private fun completeOperation() {
         operationToken++
         currentOperation = null
-        handler.post(::runNextOperation)
+        scheduleNextOperation()
     }
 
+    private fun scheduleNextOperation() {
+        val delay = if (conservativeShoeInspection) {
+            SHOE_OPERATION_DELAY_MILLIS
+        } else {
+            DEFAULT_OPERATION_DELAY_MILLIS
+        }
+        handler.postDelayed({ runNextOperation() }, delay)
+    }
+
+    @SuppressLint("MissingPermission")
     private fun setReady() {
         currentOperation = null
-        _state.value = _state.value.copy(status = ConnectionStatus.READY)
+        reconnectAttempts = 0
+        _state.value = _state.value.copy(
+            status = ConnectionStatus.READY,
+            lastError = null,
+            lastDisconnectStatus = null,
+            reconnectAttempt = 0,
+        )
+
+        bluetoothGatt?.let { gatt ->
+            try {
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
+            } catch (_: SecurityException) {
+                // Optionaler Optimierungsschritt.
+            }
+        }
+
         log(
             LogLevel.INFO,
             "GATT",
-            "Sichere Nur-Lese-Inspektion abgeschlossen. " +
-                "Es wurden keine Schuh-Steuerbefehle gesendet.",
+            if (conservativeShoeInspection) {
+                "Schuhverbindung ist bereit. Sichere Standardwerte wurden gelesen; " +
+                    "proprietäre Steuerbefehle bleiben gesperrt."
+            } else {
+                "Sichere Nur-Lese-Inspektion abgeschlossen. " +
+                    "Es wurden keine Steuerbefehle gesendet."
+            },
         )
     }
 
@@ -527,6 +755,11 @@ class GattInspector(
         pendingOperations.clear()
         currentOperation = null
         operationToken++
+    }
+
+    private fun cancelReconnect() {
+        reconnectRunnable?.let(handler::removeCallbacks)
+        reconnectRunnable = null
     }
 
     private fun fail(message: String) {
@@ -550,8 +783,11 @@ class GattInspector(
     }
 
     fun close() {
+        explicitDisconnect = true
+        cancelReconnect()
         disconnect()
-        bluetoothGatt?.let(::closeGatt)
+        requestedDevice = null
+        requestedDeviceName = null
         cancelOperations()
     }
 
@@ -560,6 +796,24 @@ class GattInspector(
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
         private val BATTERY_LEVEL_CHARACTERISTIC =
             UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
+
+        private val SAFE_SHOE_READ_CHARACTERISTICS = setOf(
+            UUID.fromString("00002a00-0000-1000-8000-00805f9b34fb"), // Device Name
+            UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb"), // Battery Level
+            UUID.fromString("00002a23-0000-1000-8000-00805f9b34fb"), // System ID
+            UUID.fromString("00002a24-0000-1000-8000-00805f9b34fb"), // Model Number
+            UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb"), // Serial Number
+            UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb"), // Firmware Revision
+            UUID.fromString("00002a29-0000-1000-8000-00805f9b34fb"), // Manufacturer Name
+            UUID.fromString("00002a50-0000-1000-8000-00805f9b34fb"), // PnP ID
+        )
+
+        private val RECONNECT_DELAYS_MILLIS = longArrayOf(2_000L, 5_000L)
+        private const val MAX_RECONNECT_ATTEMPTS = 2
+        private const val DEFAULT_SERVICE_DISCOVERY_DELAY_MILLIS = 250L
+        private const val SHOE_SERVICE_DISCOVERY_DELAY_MILLIS = 900L
+        private const val DEFAULT_OPERATION_DELAY_MILLIS = 35L
+        private const val SHOE_OPERATION_DELAY_MILLIS = 180L
         private const val OPERATION_TIMEOUT_MILLIS = 5_000L
     }
 }
