@@ -2,7 +2,7 @@
 
 SoleLink ist eine eigenständige, lokale Android-Begleit-App für Bluetooth-LE-Schuhe. Die App verwendet einen eigenen Namen, ein eigenes Drachen-Katana-Design und keine Herstellerlogos.
 
-## Version 0.4.0
+## Version 0.4.1
 
 ### Fest hinterlegter rechter Schuh
 
@@ -14,6 +14,20 @@ Die App kennt den bereits bestätigten rechten Schuh dauerhaft:
 - erwarteter Werbedienst: `0000180a-0000-1000-8000-00805f9b34fb`
 
 Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Mein rechter Schuh“** markiert und auf Wunsch automatisch verbunden. Geräte namens `App-RCTW` werden nicht mehr als Schuhkandidat behandelt.
+
+### Behandlung von Status 19
+
+Androids Status `19` beziehungsweise `0x13` bedeutet, dass die Bluetooth-Gegenstelle die Verbindung beendet hat. SoleLink behandelt diesen Fall beim gespeicherten Schuh jetzt speziell:
+
+- Dienstsuche beginnt erst nach einer kurzen Stabilisierungspause.
+- GATT-Leseoperationen werden langsamer nacheinander ausgeführt.
+- Beim ersten Kontakt werden keine proprietären Notifications aktiviert.
+- Zunächst werden nur sichere Standardwerte wie Akku, Modell und Firmware gelesen.
+- Die App versucht die Verbindung höchstens zweimal nach 2 und 5 Sekunden erneut.
+- Währenddessen zeigt die App an, dass kurz eine Seitentaste am Schuh gedrückt werden soll.
+- Bleibt der Fehler bestehen, erscheint eine verständliche Erklärung statt nur der Zahl `19`.
+
+Die Wiederholungen umgehen keine Gerätesicherheit. Ist der Schuh noch mit einer anderen App verbunden, besitzt er alte Kopplungsschlüssel oder wartet er auf den originalen Anwendungs-Handshake, kann er die Verbindung weiterhin ablehnen.
 
 ### Oberfläche
 
@@ -31,9 +45,9 @@ Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Me
 - optionale automatische Verbindung
 - GATT-Verbindung und Dienstsuche
 - sichere Lesezugriffe
-- Notifications und Indications
+- vorsichtige Wiederverbindung bei Status 19, 8 und 133
 - Standard-Batteriedienst
-- Diagnoseprotokoll und JSON-Export mit Schuhklassifizierung
+- Diagnoseprotokoll und JSON-Export Schema 3 mit Trennstatus und Schuhklassifizierung
 
 Die Passform- und Lichtoberfläche arbeitet weiterhin als lokale Vorschau. Motor- und LED-Schreibbefehle werden erst aktiviert, sobald das konkrete Steuerprotokoll verifiziert ist.
 
