@@ -1,5 +1,6 @@
 package de.crazybatto.solelink.util
 
+import de.crazybatto.solelink.BuildConfig
 import de.crazybatto.solelink.ble.DiscoveredDevice
 import de.crazybatto.solelink.ble.GattState
 import de.crazybatto.solelink.ble.KnownShoeRegistry
@@ -15,13 +16,13 @@ object JsonExport {
         logs: List<LogEntry>,
     ): String {
         val root = JSONObject()
-            .put("schemaVersion", 2)
+            .put("schemaVersion", 3)
             .put("generatedAt", Instant.now().toString())
             .put(
                 "application",
                 JSONObject()
                     .put("name", "SoleLink")
-                    .put("version", "0.4.0")
+                    .put("version", BuildConfig.VERSION_NAME)
                     .put("mode", "adaptive-shoe-control-preview"),
             )
             .put(
@@ -100,6 +101,8 @@ object JsonExport {
             )
             .putNullable("batteryPercent", batteryPercent)
             .putNullable("lastError", lastError)
+            .putNullable("lastDisconnectStatus", lastDisconnectStatus)
+            .put("reconnectAttempt", reconnectAttempt)
             .put("services", JSONArray().apply {
                 services.forEach { service ->
                     put(
