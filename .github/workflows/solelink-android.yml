@@ -41,22 +41,24 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("apps/SoleLinkDiagnostic/app/build.gradle.kts")
           source = path.read_text(encoding="utf-8")
-          old = '''    kotlinOptions {
-              jvmTarget = "17"
-          }
-          '''
-          new = '''    kotlin {
-              compilerOptions {
-                  jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-              }
-          }
-          '''
-          if old in source:
-              path.write_text(source.replace(old, new), encoding="utf-8")
-          elif new not in source:
+          pattern = re.compile(
+              r'(?ms)^ {4}kotlinOptions\s*\{\s*jvmTarget\s*=\s*"17"\s*\}\s*'
+          )
+          replacement = (
+              "    kotlin {\n"
+              "        compilerOptions {\n"
+              "            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)\n"
+              "        }\n"
+              "    }\n\n"
+          )
+          source, changes = pattern.subn(replacement, source, count=1)
+          if changes:
+              path.write_text(source, encoding="utf-8")
+          elif "compilerOptions" not in source:
               raise SystemExit("Unbekannte Kotlin-JVM-Konfiguration")
           PY
 
