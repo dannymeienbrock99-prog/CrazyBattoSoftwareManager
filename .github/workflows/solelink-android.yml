@@ -48,6 +48,12 @@ jobs:
         shell: bash
         run: test -s apps/SoleLinkDiagnostic/solelink-stable.jks
 
+      - name: Compose-Import korrigieren
+        shell: bash
+        run: |
+          sed -i '/import androidx.compose.foundation.layout.weight/d' \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt
+
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
         run: ./gradlew --no-daemon testDebugUnitTest
