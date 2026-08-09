@@ -36,6 +36,30 @@ jobs:
           unzip -q /tmp/solelink/SoleLinkDiagnostic-source.zip -d apps
           test -f apps/SoleLinkDiagnostic/settings.gradle.kts
 
+      - name: Kotlin-Compilerziel aktualisieren
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/SoleLinkDiagnostic/app/build.gradle.kts")
+          source = path.read_text(encoding="utf-8")
+          old = '''    kotlinOptions {
+              jvmTarget = "17"
+          }
+          '''
+          new = '''    kotlin {
+              compilerOptions {
+                  jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+              }
+          }
+          '''
+          if old in source:
+              path.write_text(source.replace(old, new), encoding="utf-8")
+          elif new not in source:
+              raise SystemExit("Unbekannte Kotlin-JVM-Konfiguration")
+          PY
+
       - name: JDK 17 einrichten
         uses: actions/setup-java@v4
         with:
