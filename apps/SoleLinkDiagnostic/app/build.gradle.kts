@@ -9,17 +9,16 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "de.crazybatto.solelink"
+        applicationId = "de.crazybatto.solelink.control"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            isMinifyEnabled = false
         }
         release {
             isMinifyEnabled = true

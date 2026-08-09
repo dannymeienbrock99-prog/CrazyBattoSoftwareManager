@@ -31,7 +31,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         appendLog(
             LogLevel.INFO,
             "APP",
-            "Nur-Lese-Diagnose gestartet. Unbekannte Steuerbefehle sind deaktiviert.",
+            "SoleLink Control gestartet. Bluetooth-Diagnose ist aktiv.",
         )
     }
 
@@ -72,6 +72,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearLogs() {
         _logs.value = emptyList()
         appendLog(LogLevel.INFO, "APP", "Protokoll wurde geleert.")
+    }
+
+    fun notePreviewAction(message: String) {
+        appendLog(LogLevel.INFO, "VORSCHAU", message)
     }
 
     fun exportJson(): String =

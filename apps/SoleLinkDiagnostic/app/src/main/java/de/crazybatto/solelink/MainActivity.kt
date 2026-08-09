@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         refreshSystemState()
 
         setContent {
-            SoleLinkTheme {
+            SoleLinkTheme(darkTheme = true) {
                 SoleLinkApp(
                     viewModel = viewModel,
                     permissionsGranted = permissionsGranted,
@@ -109,6 +109,6 @@ class MainActivity : ComponentActivity() {
         val timestamp = LocalDateTime.now().format(
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"),
         )
-        createDocumentLauncher.launch("solelink-diagnostic-$timestamp.json")
+        createDocumentLauncher.launch("solelink-control-$timestamp.json")
     }
 }

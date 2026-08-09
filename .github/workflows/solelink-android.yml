@@ -1,9 +1,9 @@
-name: SoleLink Android
+name: SoleLink Control Android
 
 on:
   push:
     branches:
-      - feature/adapt-local-diagnostic
+      - feature/solelink-adapt-style-0.3.0
     paths:
       - "apps/SoleLinkDiagnostic/**"
       - ".github/workflows/solelink-android.yml"
@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: solelink-${{ github.ref }}
+  group: solelink-control-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: JDK 17 einrichten
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -48,23 +48,35 @@ jobs:
         working-directory: apps/SoleLinkDiagnostic
         run: ./gradlew --no-daemon testDebugUnitTest
 
-      - name: Debug-APK bauen
+      - name: Installierbare APK bauen
         working-directory: apps/SoleLinkDiagnostic
         run: ./gradlew --no-daemon assembleDebug
+
+      - name: APK benennen und prüfen
+        shell: bash
+        run: |
+          cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk \
+            SoleLink-Control-0.3.0.apk
+          test -s SoleLink-Control-0.3.0.apk
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging \
+            SoleLink-Control-0.3.0.apk | head -n 8
+          sha256sum SoleLink-Control-0.3.0.apk > SoleLink-Control-0.3.0-SHA256.txt
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
         run: |
           cd apps
-          zip -qr ../SoleLinkDiagnostic-complete.zip SoleLinkDiagnostic \
+          zip -qr ../SoleLink-Control-0.3.0-source.zip SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
             -x "SoleLinkDiagnostic/app/build/*"
 
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: SoleLink-Diagnostic-build
+          name: SoleLink-Control-0.3.0
           path: |
-            apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk
-            SoleLinkDiagnostic-complete.zip
+            SoleLink-Control-0.3.0.apk
+            SoleLink-Control-0.3.0-SHA256.txt
+            SoleLink-Control-0.3.0-source.zip
           if-no-files-found: error
+          retention-days: 90
