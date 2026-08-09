@@ -13,8 +13,8 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import de.crazybatto.solelink.ui.BrandedSoleLinkApp
 import de.crazybatto.solelink.ui.MainViewModel
-import de.crazybatto.solelink.ui.SoleLinkApp
 import de.crazybatto.solelink.ui.theme.SoleLinkTheme
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SoleLinkTheme {
-                SoleLinkApp(
+                BrandedSoleLinkApp(
                     viewModel = viewModel,
                     permissionsGranted = permissionsGranted,
                     bluetoothEnabled = bluetoothEnabled,
