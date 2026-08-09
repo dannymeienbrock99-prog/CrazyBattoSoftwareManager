@@ -439,8 +439,9 @@ class GattInspector(
         val current = _state.value
         var batteryPercent = current.batteryPercent
 
-        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && !value.isNullOrEmpty()) {
-            batteryPercent = value[0].toInt() and 0xFF
+        val firstValueByte = value?.firstOrNull()
+        if (characteristicUuid == BATTERY_LEVEL_CHARACTERISTIC && firstValueByte != null) {
+            batteryPercent = firstValueByte.toInt() and 0xFF
         }
 
         val services = current.services.map { service ->
