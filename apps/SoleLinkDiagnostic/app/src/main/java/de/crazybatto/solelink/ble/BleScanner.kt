@@ -29,6 +29,7 @@ class BleScanner(
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
 
     private var stopRunnable: Runnable? = null
+    private val announcedKnownDevices = mutableSetOf<String>()
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -120,6 +121,7 @@ class BleScanner(
 
     fun clear() {
         _devices.value = emptyList()
+        announcedKnownDevices.clear()
         log(LogLevel.INFO, "SCAN", "Gefundene Geräte wurden aus der Liste entfernt.")
     }
 
@@ -135,9 +137,9 @@ class BleScanner(
             }
         }
 
-        val item = DiscoveredDevice(
+        val scannedItem = DiscoveredDevice(
             address = result.device.address,
-            name = record?.deviceName,
+            name = record?.deviceName ?: result.device.name,
             rssi = result.rssi,
             connectable = result.isConnectable,
             serviceUuids = record?.serviceUuids
@@ -147,10 +149,34 @@ class BleScanner(
             rawScanRecordHex = record?.bytes?.toHexString(),
         )
 
+        val knownMatch = KnownShoeRegistry.identify(scannedItem)
+        val item = when {
+            knownMatch?.stored == true -> scannedItem.copy(
+                name = "Mein rechter Schuh · Adapt " +
+                    (scannedItem.name ?: KnownShoeRegistry.ADVERTISED_MODEL_NAME),
+            )
+            knownMatch != null -> scannedItem.copy(
+                name = "Passender Schuh · ${scannedItem.name ?: scannedItem.address}",
+            )
+            else -> scannedItem
+        }
+        if (knownMatch != null && announcedKnownDevices.add(item.address.uppercase())) {
+            log(
+                LogLevel.INFO,
+                "SCHUH",
+                if (knownMatch.stored) {
+                    "Gespeicherter rechter Schuh erkannt: " +
+                        "${item.name ?: KnownShoeRegistry.ADVERTISED_MODEL_NAME} (${item.address})."
+                } else {
+                    "Passendes Schuhprofil erkannt: ${item.name ?: item.address}."
+                },
+            )
+        }
+
         _devices.update { current ->
             (current.filterNot { it.address == item.address } + item)
                 .sortedWith(
-                    compareByDescending<DiscoveredDevice> { it.name?.contains("adapt", true) == true }
+                    compareByDescending<DiscoveredDevice> { KnownShoeRegistry.priority(it) }
                         .thenByDescending { it.rssi },
                 )
         }

@@ -2,6 +2,7 @@ package de.crazybatto.solelink.util
 
 import de.crazybatto.solelink.ble.DiscoveredDevice
 import de.crazybatto.solelink.ble.GattState
+import de.crazybatto.solelink.ble.KnownShoeRegistry
 import de.crazybatto.solelink.ble.LogEntry
 import java.time.Instant
 import org.json.JSONArray
@@ -14,14 +15,23 @@ object JsonExport {
         logs: List<LogEntry>,
     ): String {
         val root = JSONObject()
-            .put("schemaVersion", 1)
+            .put("schemaVersion", 2)
             .put("generatedAt", Instant.now().toString())
             .put(
                 "application",
                 JSONObject()
-                    .put("name", "SoleLink Diagnostic")
-                    .put("version", "0.1.0")
-                    .put("mode", "read-only-gatt-inspection"),
+                    .put("name", "SoleLink")
+                    .put("version", "0.4.0")
+                    .put("mode", "adaptive-shoe-control-preview"),
+            )
+            .put(
+                "knownRightShoe",
+                JSONObject()
+                    .put("label", "Mein rechter Schuh")
+                    .put("advertisedName", KnownShoeRegistry.ADVERTISED_MODEL_NAME)
+                    .put("address", KnownShoeRegistry.RIGHT_SHOE_ADDRESS)
+                    .put("manufacturerId", KnownShoeRegistry.MANUFACTURER_ID)
+                    .put("manufacturerIdHex", "0x0078"),
             )
             .put(
                 "privacyNotice",
@@ -47,8 +57,9 @@ object JsonExport {
         return root.toString(2)
     }
 
-    private fun DiscoveredDevice.toJson(): JSONObject =
-        JSONObject()
+    private fun DiscoveredDevice.toJson(): JSONObject {
+        val shoeMatch = KnownShoeRegistry.identify(this)
+        return JSONObject()
             .put("address", address)
             .putNullable("name", name)
             .put("rssi", rssi)
@@ -61,12 +72,32 @@ object JsonExport {
                 }
             })
             .putNullable("rawScanRecordHex", rawScanRecordHex)
+            .put(
+                "shoeIdentification",
+                shoeMatch?.let { match ->
+                    JSONObject()
+                        .put("matched", true)
+                        .put("label", match.label)
+                        .put("side", match.side.name)
+                        .put("confidence", match.confidence.name)
+                        .put("stored", match.stored)
+                        .put("reason", match.reason)
+                } ?: JSONObject().put("matched", false),
+            )
+    }
 
     private fun GattState.toJson(): JSONObject =
         JSONObject()
             .put("status", status.name)
             .putNullable("deviceName", deviceName)
             .putNullable("deviceAddress", deviceAddress)
+            .put(
+                "connectedToStoredRightShoe",
+                deviceAddress?.equals(
+                    KnownShoeRegistry.RIGHT_SHOE_ADDRESS,
+                    ignoreCase = true,
+                ) == true,
+            )
             .putNullable("batteryPercent", batteryPercent)
             .putNullable("lastError", lastError)
             .put("services", JSONArray().apply {

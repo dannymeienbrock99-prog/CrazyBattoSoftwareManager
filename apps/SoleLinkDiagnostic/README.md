@@ -1,23 +1,51 @@
 # SoleLink Control für Android
 
-SoleLink ist eine eigenständige, lokale Android-Begleit-App für Bluetooth-LE-Schuhe und ähnliche Geräte. Die Oberfläche orientiert sich an der Bedienlogik moderner Smart-Shoe-Apps, verwendet aber einen eigenen Namen, ein eigenes Drachen-Katana-Design und keine Herstellerlogos.
+SoleLink ist eine eigenständige, lokale Android-Begleit-App für Bluetooth-LE-Schuhe. Die App verwendet einen eigenen Namen, ein eigenes Drachen-Katana-Design und keine Herstellerlogos.
 
-## Version 0.3.0
+## Version 0.4.0
 
-- neue Startseite mit großem Paar-/Verbindungsbereich
+### Fest hinterlegter rechter Schuh
+
+Die App kennt den bereits bestätigten rechten Schuh dauerhaft:
+
+- Anzeigename: `005-BQ5397-001`
+- Bluetooth-Adresse: `C0:04:6F:A7:46:0D`
+- Herstellerkennung: `0x0078`
+- erwarteter Werbedienst: `0000180a-0000-1000-8000-00805f9b34fb`
+
+Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Mein rechter Schuh“** markiert und auf Wunsch automatisch verbunden. Geräte namens `App-RCTW` werden nicht mehr als Schuhkandidat behandelt.
+
+### Oberfläche
+
+- Startseite mit festem Schuhstatus, Akkustand und Drachen-Katana-Motiv
 - getrennte Passformregler für linken und rechten Schuh
 - Preset-Modi „Locker“, „Bewegen“ und „Spiel“
-- eigener lokal speicherbarer Modus
+- lokal speicherbarer eigener Modus
 - Farbauswahl, Effekte und Leuchtdauer als interaktive Vorschau
-- Bluetooth-Scan, GATT-Inspektor und JSON-Diagnoseexport
-- Drachen-Katana-App-Symbol und Startbild
-- eigenes Paket `de.crazybatto.solelink.control`, damit diese Fassung neben älteren Testversionen installiert werden kann
+- eigener Gerät-Tab für Scan, feste Schuhkarte, Verbindung, GATT-Diagnose und JSON-Export
 
-## Aktueller Funktionsumfang
+### Aktive Bluetooth-Funktionen
 
-Die Bluetooth-Suche, Verbindung, GATT-Dienstsuche, sichere Lesezugriffe, Notifications und der Diagnoseexport sind aktiv.
+- BLE-Scan
+- automatische Erkennung des hinterlegten rechten Schuhs
+- optionale automatische Verbindung
+- GATT-Verbindung und Dienstsuche
+- sichere Lesezugriffe
+- Notifications und Indications
+- Standard-Batteriedienst
+- Diagnoseprotokoll und JSON-Export mit Schuhklassifizierung
 
-Die Passform- und Lichtoberfläche reagiert vollständig als lokale Vorschau. Unbekannte Motor- und LED-Schreibbefehle werden erst aktiviert, sobald ein verifiziertes Protokollprofil für das konkrete Schuhmodell vorliegt.
+Die Passform- und Lichtoberfläche arbeitet weiterhin als lokale Vorschau. Motor- und LED-Schreibbefehle werden erst aktiviert, sobald das konkrete Steuerprotokoll verifiziert ist.
+
+## Installation und Updates
+
+Diese Fassung verwendet das Paket:
+
+```text
+de.crazybatto.solelink.control.stable
+```
+
+Außerdem wird sie mit einem festen, ausschließlich für dieses öffentliche Testprojekt bestimmten Entwicklungsschlüssel signiert. Dadurch lassen sich zukünftige SoleLink-Testversionen über diese Fassung installieren, ohne jedes Mal die App löschen zu müssen. Der Schlüssel ist nicht für eine Veröffentlichung im Play Store oder für produktive Signaturen gedacht.
 
 ## Bauen
 
@@ -32,8 +60,4 @@ Voraussetzungen:
 ./gradlew assembleDebug
 ```
 
-Die APK liegt anschließend unter:
-
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
+Der Entwicklungs-Build verwendet `solelink-stable.jks`. Das automatisch erzeugte Quellcode-ZIP lässt diesen Schlüssel bewusst aus; der GitHub-Branch enthält ihn nur, damit reproduzierbare Test-Updates gebaut werden können.

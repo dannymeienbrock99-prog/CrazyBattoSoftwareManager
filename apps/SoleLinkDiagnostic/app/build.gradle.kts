@@ -4,25 +4,40 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val stableKeystore = rootProject.file("solelink-stable.jks")
+
 android {
     namespace = "de.crazybatto.solelink"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "de.crazybatto.solelink.control"
+        applicationId = "de.crazybatto.solelink.control.stable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
+    }
+
+    val stableSigning = if (stableKeystore.exists()) {
+        signingConfigs.create("solelinkStable") {
+            storeFile = stableKeystore
+            storePassword = "SoleLink-Dev-2026"
+            keyAlias = "solelink"
+            keyPassword = "SoleLink-Dev-2026"
+        }
+    } else {
+        null
     }
 
     buildTypes {
         debug {
             isMinifyEnabled = false
+            stableSigning?.let { signingConfig = it }
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            stableSigning?.let { signingConfig = it }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

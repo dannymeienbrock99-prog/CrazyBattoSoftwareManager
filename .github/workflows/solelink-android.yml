@@ -44,11 +44,9 @@ jobs:
       - name: Gradle-Cache einrichten
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Quellcode für aktuelle Compose-Version bereinigen
+      - name: Entwicklungsschlüssel prüfen
         shell: bash
-        run: |
-          sed -i '/import androidx.compose.foundation.layout.weight/d' \
-            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt
+        run: test -s apps/SoleLinkDiagnostic/solelink-stable.jks
 
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
@@ -62,27 +60,30 @@ jobs:
         shell: bash
         run: |
           cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk \
-            SoleLink-Control-0.3.0.apk
-          test -s SoleLink-Control-0.3.0.apk
+            SoleLink-Control-0.4.0.apk
+          test -s SoleLink-Control-0.4.0.apk
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging \
-            SoleLink-Control-0.3.0.apk | head -n 8
-          sha256sum SoleLink-Control-0.3.0.apk > SoleLink-Control-0.3.0-SHA256.txt
+            SoleLink-Control-0.4.0.apk | head -n 10
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+            --verbose --print-certs SoleLink-Control-0.4.0.apk
+          sha256sum SoleLink-Control-0.4.0.apk > SoleLink-Control-0.4.0-SHA256.txt
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
         run: |
           cd apps
-          zip -qr ../SoleLink-Control-0.3.0-source.zip SoleLinkDiagnostic \
+          zip -qr ../SoleLink-Control-0.4.0-source.zip SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
-            -x "SoleLinkDiagnostic/app/build/*"
+            -x "SoleLinkDiagnostic/app/build/*" \
+            -x "SoleLinkDiagnostic/solelink-stable.jks"
 
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: SoleLink-Control-0.3.0
+          name: SoleLink-Control-0.4.0
           path: |
-            SoleLink-Control-0.3.0.apk
-            SoleLink-Control-0.3.0-SHA256.txt
-            SoleLink-Control-0.3.0-source.zip
+            SoleLink-Control-0.4.0.apk
+            SoleLink-Control-0.4.0-SHA256.txt
+            SoleLink-Control-0.4.0-source.zip
           if-no-files-found: error
           retention-days: 90

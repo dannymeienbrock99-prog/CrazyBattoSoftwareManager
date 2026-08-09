@@ -9,3 +9,6 @@ captures/
 .cxx/
 app/release/
 app/build/
+
+# Local/CI development signing key
+solelink-stable.jks
