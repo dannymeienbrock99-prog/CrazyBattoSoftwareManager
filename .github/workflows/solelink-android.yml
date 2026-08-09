@@ -1,0 +1,98 @@
+name: SoleLink Android
+
+on:
+  push:
+    branches:
+      - feature/adapt-local-diagnostic
+    paths:
+      - "apps/SoleLinkDiagnostic-bootstrap/**"
+      - "apps/SoleLinkDiagnostic/**"
+      - ".github/workflows/solelink-android.yml"
+  pull_request:
+    paths:
+      - "apps/SoleLinkDiagnostic/**"
+      - ".github/workflows/solelink-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Projektquelle beim ersten Lauf wiederherstellen
+        if: ${{ hashFiles('apps/SoleLinkDiagnostic/settings.gradle.kts') == '' }}
+        shell: bash
+        run: |
+          mkdir -p /tmp/solelink
+          cat apps/SoleLinkDiagnostic-bootstrap/b64part* \
+            | base64 --decode \
+            > /tmp/solelink/SoleLinkDiagnostic-source.zip
+          unzip -q /tmp/solelink/SoleLinkDiagnostic-source.zip -d apps
+          test -f apps/SoleLinkDiagnostic/settings.gradle.kts
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK einrichten
+        uses: android-actions/setup-android@v3
+
+      - name: Android SDK 36 installieren
+        shell: bash
+        run: yes | sdkmanager --licenses >/dev/null && sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Gradle 8.13 einrichten
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Gradle Wrapper erzeugen
+        working-directory: apps/SoleLinkDiagnostic
+        run: gradle wrapper --gradle-version 8.13
+
+      - name: Vollständige Quelle in den Branch übernehmen
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/adapt-local-diagnostic'
+        shell: bash
+        run: |
+          rm -rf apps/SoleLinkDiagnostic-bootstrap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/SoleLinkDiagnostic apps/SoleLinkDiagnostic-bootstrap
+          if ! git diff --cached --quiet; then
+            git commit -m "Add complete SoleLink Android project and wrapper [skip ci]"
+            git push
+          fi
+
+      - name: Unit-Tests ausführen
+        working-directory: apps/SoleLinkDiagnostic
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Debug-APK bauen
+        working-directory: apps/SoleLinkDiagnostic
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Vollständigen Projekt-ZIP erzeugen
+        shell: bash
+        run: |
+          cd apps
+          zip -qr ../SoleLinkDiagnostic-complete.zip SoleLinkDiagnostic \
+            -x "SoleLinkDiagnostic/.gradle/*" \
+            -x "SoleLinkDiagnostic/.gradle-bootstrap/*" \
+            -x "SoleLinkDiagnostic/app/build/*"
+
+      - name: APK und Projekt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoleLink-Diagnostic-build
+          path: |
+            apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk
+            SoleLinkDiagnostic-complete.zip
+          if-no-files-found: error
