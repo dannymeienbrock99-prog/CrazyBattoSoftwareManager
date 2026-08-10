@@ -1,38 +1,44 @@
 # Änderungsprotokoll
 
+## 0.4.3
+
+- ausdrücklichen Einzelschuh-Modus eingeführt
+- ein linker oder rechter Schuh reicht für eine nutzbare Sitzung
+- zweiter Schuh ist optional und blockiert den Start nicht
+- neue Auswahl: „Nur rechter Schuh“, „Nur linker Schuh“ und „Beide nacheinander“
+- nicht ausgewählte Passformseite wird in der Oberfläche deaktiviert
+- Preset-Modi verändern nur die aktuell ausgewählte Seite
+- Scan wählt den besten erkannten Schuhkandidaten statt zwingend nur den gespeicherten rechten Schuh
+- gespeicherter rechter Schuh behält die höchste Priorität
+- anderer passender Schuh kann ohne den rechten Schuh allein verbunden werden
+- Diagnoseexport auf Schema 4 erweitert
+- Exportfelder `mode=SINGLE_SHOE`, `pairRequired=false` und `minimumRequiredShoes=1`
+- zusätzliche Tests für einzelne rechte, einzelne andere und fehlende Schuhkandidaten
+- VersionCode auf 7 und Version auf 0.4.3 erhöht
+
 ## 0.4.2
 
-- neues CrazyBatto-Drachenlogo als Android-Launcher- und Verknüpfungssymbol eingebaut
-- bisherige Unterzeile `WindowsManager` durch `NIKE ADAPT 2.0 BB` ersetzt
-- Android-Verknüpfungsname auf `Nike Adapt 2.0 BB` geändert
-- neues Logo wird auch im Kopfbereich der App verwendet
-- VersionCode auf 6 und Version auf 0.4.2 erhöht
-- Build-Artefakte eindeutig als `Nike-Adapt-2.0-BB-CrazyBatto-0.4.2` benannt
-- CI prüft nun zusätzlich sichtbaren App-Namen, Versionsnummer und APK-Signatur
-- bereitgestelltes Original-APK nur als Interoperabilitätsreferenz dokumentiert; kein Nike-Code und keine Nike-Grafik übernommen
+- neues CrazyBatto-Drachenlogo als Android-Launcher- und Verknüpfungssymbol
+- Unterzeile `NIKE ADAPT 2.0 BB`
+- Android-Verknüpfungsname `Nike Adapt 2.0 BB`
 
 ## 0.4.1
 
-- Status 19 (`0x13`) wird korrekt als durch die Gegenstelle beendete Verbindung erklärt
-- maximal zwei automatische Wiederverbindungsversuche nach 2 und 5 Sekunden
-- sichtbare Aufforderung, während der Wiederverbindung eine Seitentaste am Schuh zu drücken
-- verzögerte Dienstsuche, langsamere GATT-Operationsfolge und sichere Standardlesevorgänge
-- proprietäre Benachrichtigungen werden beim ersten Schuhkontakt nicht automatisch aktiviert
-- Diagnoseexport Schema 3 und Tests für Status-19-Erkennung ergänzt
+- Status 19 (`0x13`) verständlich erklärt
+- höchstens zwei automatische Wiederverbindungsversuche
+- verzögerte und langsamere sichere GATT-Abfragen
+- Diagnoseexport Schema 3
 
 ## 0.4.0
 
-- rechter Schuh dauerhaft als `005-BQ5397-001` / `C0:04:6F:A7:46:0D` hinterlegt
-- Herstellerkennung `0x0078` und Geräteinformationsdienst in die Erkennung aufgenommen
-- gespeicherter Schuh wird zuerst angezeigt und automatisch verbunden
-- `App-RCTW` wird nicht als Schuhprofil behandelt
-- stabiler Entwicklungsschlüssel für zukünftige Test-Updates eingeführt
+- rechter Schuh `005-BQ5397-001` / `C0:04:6F:A7:46:0D` fest hinterlegt
+- Herstellerkennung `0x0078`
+- stabiler Testsignaturschlüssel
 
 ## 0.3.0
 
-- Smart-Shoe-Bedienoberfläche mit eigenständigem Branding
+- Smart-Shoe-Bedienoberfläche
 - Passform-, Modus- und Lichtvorschau
-- Bluetooth-Scan, GATT-Diagnose und JSON-Export
 
 ## 0.1.0
 

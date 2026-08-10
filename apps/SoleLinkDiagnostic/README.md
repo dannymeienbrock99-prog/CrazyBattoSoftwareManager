@@ -1,45 +1,69 @@
 # CrazyBatto – Nike Adapt 2.0 BB für Android
 
-Dieses Repository enthält eine eigenständige Android-Test-App für die lokale Bluetooth-LE-Kommunikation mit selbstschnürenden Schuhen. Die App verwendet das CrazyBatto-Drachenlogo und erscheint auf dem Android-Display unter dem Namen **„Nike Adapt 2.0 BB“**.
+Diese Android-Test-App dient der lokalen Bluetooth-LE-Kommunikation mit selbstschnürenden Schuhen. Sie verwendet das CrazyBatto-Drachenlogo und erscheint auf dem Android-Display unter dem Namen **„Nike Adapt 2.0 BB“**.
 
-> Hinweis: Dies ist keine offizielle Nike-App und wird nicht von Nike entwickelt, veröffentlicht oder unterstützt. Das bereitgestellte Original-APK wurde ausschließlich als technische Referenz für Interoperabilität und die Analyse des Kopplungsablaufs betrachtet. Quellcode, Nike-Grafiken und Nike-App-Ressourcen werden nicht in diese App übernommen.
+> Dies ist keine offizielle Nike-App und wird nicht von Nike entwickelt, veröffentlicht oder unterstützt. Das bereitgestellte Original-APK dient ausschließlich als technische Referenz für Interoperabilität. Nike-Quellcode, Nike-Grafiken und Nike-App-Ressourcen werden nicht übernommen.
 
-## Version 0.4.2
+## Version 0.4.3 – Einzelschuh-Modus
 
-### Neues Display- und Verknüpfungslogo
+Die App verlangt kein vollständiges Paar mehr. **Ein linker oder ein rechter Schuh reicht aus**, um eine Sitzung zu starten.
 
-- neues quadratisches CrazyBatto-Drachenlogo
-- metallisches Windows-Emblem im Zentrum
-- Schriftzug `CrazyBatto`
-- Unterzeile `NIKE ADAPT 2.0 BB`
-- als Android-Launcher-Symbol eingebaut
-- wird ebenfalls im Kopfbereich der App angezeigt
-- Verknüpfungsname auf dem Android-Display: `Nike Adapt 2.0 BB`
+### Verhalten
+
+- Standardmodus: nur rechter Schuh
+- umschaltbar auf nur linken Schuh
+- optional: beide Schuhe nacheinander
+- die App wartet nach einer erfolgreichen Verbindung nicht auf den zweiten Schuh
+- Scan und automatische Verbindung wählen den besten erkannten Schuhkandidaten
+- der gespeicherte rechte Schuh bleibt bevorzugt, ist aber nicht mehr die einzige mögliche Verbindung
+- ein zweiter passender Schuh mit derselben Modell- und Herstellerkennung kann allein genutzt werden
+- `App-RCTW` wird weiterhin nicht als Schuhkandidat ausgewählt
+- nur eine aktive GATT-Verbindung zur gleichen Zeit; beim Wechsel wird der andere Schuh separat verbunden
+
+### Bedienoberfläche
+
+Auf der Startseite gibt es einen neuen Bereich **„EINZELSCHUH-MODUS“** mit:
+
+- Nur rechter Schuh
+- Nur linker Schuh
+- Beide nacheinander (optional)
+
+Im Einzelschuh-Modus wird die nicht ausgewählte Seite in der Passformansicht deaktiviert. Preset-Modi verändern nur die gewählte Seite. Sichtbare Texte weisen ausdrücklich darauf hin, dass ein Schuh genügt.
+
+### Diagnoseexport
+
+Der JSON-Export verwendet Schema 4 und enthält:
+
+```json
+{
+  "connectionPolicy": {
+    "mode": "SINGLE_SHOE",
+    "pairRequired": false,
+    "minimumRequiredShoes": 1
+  }
+}
+```
 
 ### Fest hinterlegter rechter Schuh
 
 - Anzeigename: `005-BQ5397-001`
 - Bluetooth-Adresse: `C0:04:6F:A7:46:0D`
 - Herstellerkennung: `0x0078`
-- erwarteter Werbedienst: `0000180a-0000-1000-8000-00805f9b34fb`
-
-Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Mein rechter Schuh“** markiert und auf Wunsch automatisch verbunden. Geräte namens `App-RCTW` werden nicht als Schuhkandidat behandelt.
-
-### Behandlung von Status 19
-
-Status `19` beziehungsweise `0x13` bedeutet, dass die Bluetooth-Gegenstelle die Verbindung beendet hat. Die App verwendet eine kurze Stabilisierungspause, langsamere sichere GATT-Abfragen und höchstens zwei Wiederverbindungsversuche. Proprietäre Motor- und LED-Befehle bleiben gesperrt, bis der originale Kopplungs- und Authentifizierungsablauf eindeutig rekonstruiert und sicher getestet wurde.
+- Werbedienst: `0000180a-0000-1000-8000-00805f9b34fb`
 
 ### Aktive Funktionen
 
 - BLE-Scan
-- Erkennung des hinterlegten rechten Schuhs
-- optionale automatische Verbindung
+- automatische Schuherkennung
+- Einzelverbindung links oder rechts
+- Status-19-Wiederverbindung
 - GATT-Dienstsuche
 - sichere Standard-Lesezugriffe
-- Wiederverbindung bei Status 19, 8 und 133
 - Standard-Batteriedienst
 - Diagnoseprotokoll und JSON-Export
 - interaktive Passform-, Modus- und Lichtvorschau
+
+Motor- und LED-Schreibbefehle bleiben gesperrt, bis der Kopplungs- und Authentifizierungsablauf eindeutig rekonstruiert und sicher getestet wurde.
 
 ## Installation und Updates
 
@@ -49,17 +73,13 @@ Paketname:
 de.crazybatto.solelink.control.stable
 ```
 
-Version 0.4.2 kann als Update über 0.4.0 oder 0.4.1 installiert werden, sofern diese Fassungen mit demselben Testschlüssel signiert wurden.
+Version 0.4.3 kann als Update über 0.4.0, 0.4.1 oder 0.4.2 installiert werden, sofern die vorhandene Fassung mit demselben Testschlüssel signiert wurde.
 
 ## Bauen
 
-Voraussetzungen:
-
-- JDK 17
-- Android SDK 36
-- Android Studio oder Gradle Wrapper
-
 ```bash
+python3 tools/apply_single_shoe_logic.py
+python3 tools/apply_single_shoe_ui.py
 ./gradlew testDebugUnitTest
 ./gradlew assembleDebug
 ```

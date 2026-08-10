@@ -48,11 +48,23 @@ jobs:
         shell: bash
         run: test -s apps/SoleLinkDiagnostic/solelink-stable.jks
 
-      - name: Compose-Import korrigieren
+      - name: Einzelschuh-Verbindungslogik anwenden
+        shell: bash
+        run: python3 apps/SoleLinkDiagnostic/tools/apply_single_shoe_logic.py
+
+      - name: Einzelschuh-Oberfläche anwenden
+        shell: bash
+        run: python3 apps/SoleLinkDiagnostic/tools/apply_single_shoe_ui.py
+
+      - name: Einzelschuh-Build prüfen
         shell: bash
         run: |
-          sed -i '/import androidx.compose.foundation.layout.weight/d' \
+          grep -F "EINZELSCHUH-MODUS" \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SingleShoeUi.kt
+          grep -F "EIN SCHUH REICHT" \
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt
+          grep -F '"pairRequired", SingleShoePolicy.PAIR_REQUIRED' \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/util/JsonExport.kt
 
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
@@ -65,21 +77,23 @@ jobs:
       - name: APK benennen und prüfen
         shell: bash
         run: |
-          APK_NAME="Nike-Adapt-2.0-BB-CrazyBatto-0.4.2.apk"
+          APK_NAME="Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk"
           cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           test -s "$APK_NAME"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_NAME" | tee apk-badging.txt
           grep -F "application-label:'Nike Adapt 2.0 BB'" apk-badging.txt
-          grep -F "versionName='0.4.2'" apk-badging.txt
+          grep -F "versionName='0.4.3'" apk-badging.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
             --verbose --print-certs "$APK_NAME"
-          sha256sum "$APK_NAME" > Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-SHA256.txt
+          sha256sum "$APK_NAME" > \
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-SHA256.txt
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
         run: |
           cd apps
-          zip -qr ../Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-source.zip SoleLinkDiagnostic \
+          zip -qr ../Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-source.zip \
+            SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
             -x "SoleLinkDiagnostic/app/build/*" \
             -x "SoleLinkDiagnostic/solelink-stable.jks"
@@ -87,10 +101,10 @@ jobs:
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: Nike-Adapt-2.0-BB-CrazyBatto-0.4.2
+          name: Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh
           path: |
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2.apk
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-SHA256.txt
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-source.zip
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-SHA256.txt
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-source.zip
           if-no-files-found: error
           retention-days: 90
