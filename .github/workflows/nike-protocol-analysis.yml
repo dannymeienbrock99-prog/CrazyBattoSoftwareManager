@@ -1,0 +1,137 @@
+name: Nike Adapt protocol analysis
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/solelink-adapt-style-0.3.0
+    paths:
+      - ".github/workflows/nike-protocol-analysis.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Download original Nike Adapt APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          EXPECTED_SHA="86366a781de87cae2b672a15ee48d163335e101975e33be0ef8d69da7e688172"
+          URLS=(
+            "https://d.apkpure.com/b/APK/com.nike.adapt?version=latest"
+            "https://download.apkpure.com/b/APK/com.nike.adapt?version=latest"
+          )
+          success=0
+          for url in "${URLS[@]}"; do
+            rm -f nike-adapt.apk
+            if curl -fL --retry 3 --connect-timeout 30 \
+              -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/132 Safari/537.36" \
+              -e "https://apkpure.net/nike-adapt/com.nike.adapt/download" \
+              "$url" -o nike-adapt.apk; then
+              file nike-adapt.apk
+              ls -lh nike-adapt.apk
+              actual="$(sha256sum nike-adapt.apk | awk '{print $1}')"
+              echo "Downloaded SHA-256: $actual"
+              if [[ "$actual" == "$EXPECTED_SHA" ]]; then
+                success=1
+                break
+              fi
+            fi
+          done
+          if [[ "$success" != "1" ]]; then
+            echo "Could not download the exact signed Nike Adapt 1.29.3 APK."
+            exit 1
+          fi
+
+      - name: Download JADX
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 3 \
+            https://github.com/skylot/jadx/releases/download/v1.5.2/jadx-1.5.2.zip \
+            -o jadx.zip
+          echo "5a8b480839c9c61527895d81d5572182279d973abe112047417f237df958a3aa  jadx.zip" | sha256sum -c -
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+          jadx/bin/jadx --version
+
+      - name: Decompile APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p decompiled
+          jadx/bin/jadx \
+            --threads-count 4 \
+            --no-res \
+            --show-bad-code \
+            --deobf \
+            -d decompiled \
+            nike-adapt.apk
+
+      - name: Extract protocol-relevant code
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p protocol-analysis/sources
+
+          for dir in \
+            decompiled/sources/com/nike/android/adaptkit \
+            decompiled/sources/com/nike/adapt/adk \
+            decompiled/sources/com/nike/adapt; do
+            if [[ -d "$dir" ]]; then
+              mkdir -p "protocol-analysis/sources/$(dirname "$dir")"
+              cp -a "$dir" "protocol-analysis/sources/$(dirname "$dir")/"
+            fi
+          done
+
+          grep -RInE \
+            '1a2328af|30c4142f|226baea6|laceTighten|laceLoosen|laceToPercent|ledBlink|Authentication Challenge|authenticationKey|Authenticate response|AdaptMessage|IDENTIFY|Identify|CRC|sessionId|pairing' \
+            decompiled/sources \
+            > protocol-analysis/protocol-hits.txt || true
+
+          find decompiled/sources -type f -name '*.java' -print0 | \
+            xargs -0 grep -IlE \
+            'laceTighten|laceLoosen|laceToPercent|ledBlink|Authentication Challenge|authenticationKey|Authenticate response|226baea6|30c4142f|1a2328af' \
+            > protocol-analysis/relevant-files.txt || true
+
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            target="protocol-analysis/selected/${file#decompiled/sources/}"
+            mkdir -p "$(dirname "$target")"
+            cp "$file" "$target"
+          done < protocol-analysis/relevant-files.txt
+
+          strings -a nike-adapt.apk | grep -iE \
+            'laceTighten|laceLoosen|laceToPercent|ledBlink|Authentication Challenge|authenticationKey|Authenticate response|AdaptMessage|IDENTIFY' \
+            > protocol-analysis/apk-strings.txt || true
+
+          printf 'APK SHA-256: ' > protocol-analysis/manifest.txt
+          sha256sum nike-adapt.apk | awk '{print $1}' >> protocol-analysis/manifest.txt
+          printf 'JADX version: ' >> protocol-analysis/manifest.txt
+          jadx/bin/jadx --version >> protocol-analysis/manifest.txt
+          find protocol-analysis -type f | sort >> protocol-analysis/manifest.txt
+
+          zip -qr nike-adapt-protocol-analysis.zip protocol-analysis
+          ls -lh nike-adapt-protocol-analysis.zip
+
+      - name: Upload analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: nike-adapt-1.29.3-protocol-analysis
+          path: nike-adapt-protocol-analysis.zip
+          if-no-files-found: error
+          retention-days: 30
