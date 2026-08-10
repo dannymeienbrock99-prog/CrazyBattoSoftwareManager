@@ -1,4 +1,4 @@
-name: SoleLink Control Android
+name: Nike Adapt 2.0 BB CrazyBatto Android
 
 on:
   push:
@@ -65,20 +65,21 @@ jobs:
       - name: APK benennen und prüfen
         shell: bash
         run: |
-          cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk \
-            SoleLink-Control-0.4.1.apk
-          test -s SoleLink-Control-0.4.1.apk
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging \
-            SoleLink-Control-0.4.1.apk | head -n 10
+          APK_NAME="Nike-Adapt-2.0-BB-CrazyBatto-0.4.2.apk"
+          cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
+          test -s "$APK_NAME"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_NAME" | tee apk-badging.txt
+          grep -F "application-label:'Nike Adapt 2.0 BB'" apk-badging.txt
+          grep -F "versionName='0.4.2'" apk-badging.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
-            --verbose --print-certs SoleLink-Control-0.4.1.apk
-          sha256sum SoleLink-Control-0.4.1.apk > SoleLink-Control-0.4.1-SHA256.txt
+            --verbose --print-certs "$APK_NAME"
+          sha256sum "$APK_NAME" > Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-SHA256.txt
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
         run: |
           cd apps
-          zip -qr ../SoleLink-Control-0.4.1-source.zip SoleLinkDiagnostic \
+          zip -qr ../Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-source.zip SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
             -x "SoleLinkDiagnostic/app/build/*" \
             -x "SoleLinkDiagnostic/solelink-stable.jks"
@@ -86,10 +87,10 @@ jobs:
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: SoleLink-Control-0.4.1
+          name: Nike-Adapt-2.0-BB-CrazyBatto-0.4.2
           path: |
-            SoleLink-Control-0.4.1.apk
-            SoleLink-Control-0.4.1-SHA256.txt
-            SoleLink-Control-0.4.1-source.zip
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2.apk
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-SHA256.txt
+            Nike-Adapt-2.0-BB-CrazyBatto-0.4.2-source.zip
           if-no-files-found: error
           retention-days: 90

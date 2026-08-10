@@ -1,65 +1,55 @@
-# SoleLink Control für Android
+# CrazyBatto – Nike Adapt 2.0 BB für Android
 
-SoleLink ist eine eigenständige, lokale Android-Begleit-App für Bluetooth-LE-Schuhe. Die App verwendet einen eigenen Namen, ein eigenes Drachen-Katana-Design und keine Herstellerlogos.
+Dieses Repository enthält eine eigenständige Android-Test-App für die lokale Bluetooth-LE-Kommunikation mit selbstschnürenden Schuhen. Die App verwendet das CrazyBatto-Drachenlogo und erscheint auf dem Android-Display unter dem Namen **„Nike Adapt 2.0 BB“**.
 
-## Version 0.4.1
+> Hinweis: Dies ist keine offizielle Nike-App und wird nicht von Nike entwickelt, veröffentlicht oder unterstützt. Das bereitgestellte Original-APK wurde ausschließlich als technische Referenz für Interoperabilität und die Analyse des Kopplungsablaufs betrachtet. Quellcode, Nike-Grafiken und Nike-App-Ressourcen werden nicht in diese App übernommen.
+
+## Version 0.4.2
+
+### Neues Display- und Verknüpfungslogo
+
+- neues quadratisches CrazyBatto-Drachenlogo
+- metallisches Windows-Emblem im Zentrum
+- Schriftzug `CrazyBatto`
+- Unterzeile `NIKE ADAPT 2.0 BB`
+- als Android-Launcher-Symbol eingebaut
+- wird ebenfalls im Kopfbereich der App angezeigt
+- Verknüpfungsname auf dem Android-Display: `Nike Adapt 2.0 BB`
 
 ### Fest hinterlegter rechter Schuh
-
-Die App kennt den bereits bestätigten rechten Schuh dauerhaft:
 
 - Anzeigename: `005-BQ5397-001`
 - Bluetooth-Adresse: `C0:04:6F:A7:46:0D`
 - Herstellerkennung: `0x0078`
 - erwarteter Werbedienst: `0000180a-0000-1000-8000-00805f9b34fb`
 
-Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Mein rechter Schuh“** markiert und auf Wunsch automatisch verbunden. Geräte namens `App-RCTW` werden nicht mehr als Schuhkandidat behandelt.
+Beim Scan wird dieser Schuh automatisch an die erste Stelle gesetzt, als **„Mein rechter Schuh“** markiert und auf Wunsch automatisch verbunden. Geräte namens `App-RCTW` werden nicht als Schuhkandidat behandelt.
 
 ### Behandlung von Status 19
 
-Androids Status `19` beziehungsweise `0x13` bedeutet, dass die Bluetooth-Gegenstelle die Verbindung beendet hat. SoleLink behandelt diesen Fall beim gespeicherten Schuh jetzt speziell:
+Status `19` beziehungsweise `0x13` bedeutet, dass die Bluetooth-Gegenstelle die Verbindung beendet hat. Die App verwendet eine kurze Stabilisierungspause, langsamere sichere GATT-Abfragen und höchstens zwei Wiederverbindungsversuche. Proprietäre Motor- und LED-Befehle bleiben gesperrt, bis der originale Kopplungs- und Authentifizierungsablauf eindeutig rekonstruiert und sicher getestet wurde.
 
-- Dienstsuche beginnt erst nach einer kurzen Stabilisierungspause.
-- GATT-Leseoperationen werden langsamer nacheinander ausgeführt.
-- Beim ersten Kontakt werden keine proprietären Notifications aktiviert.
-- Zunächst werden nur sichere Standardwerte wie Akku, Modell und Firmware gelesen.
-- Die App versucht die Verbindung höchstens zweimal nach 2 und 5 Sekunden erneut.
-- Währenddessen zeigt die App an, dass kurz eine Seitentaste am Schuh gedrückt werden soll.
-- Bleibt der Fehler bestehen, erscheint eine verständliche Erklärung statt nur der Zahl `19`.
-
-Die Wiederholungen umgehen keine Gerätesicherheit. Ist der Schuh noch mit einer anderen App verbunden, besitzt er alte Kopplungsschlüssel oder wartet er auf den originalen Anwendungs-Handshake, kann er die Verbindung weiterhin ablehnen.
-
-### Oberfläche
-
-- Startseite mit festem Schuhstatus, Akkustand und Drachen-Katana-Motiv
-- getrennte Passformregler für linken und rechten Schuh
-- Preset-Modi „Locker“, „Bewegen“ und „Spiel“
-- lokal speicherbarer eigener Modus
-- Farbauswahl, Effekte und Leuchtdauer als interaktive Vorschau
-- eigener Gerät-Tab für Scan, feste Schuhkarte, Verbindung, GATT-Diagnose und JSON-Export
-
-### Aktive Bluetooth-Funktionen
+### Aktive Funktionen
 
 - BLE-Scan
-- automatische Erkennung des hinterlegten rechten Schuhs
+- Erkennung des hinterlegten rechten Schuhs
 - optionale automatische Verbindung
-- GATT-Verbindung und Dienstsuche
-- sichere Lesezugriffe
-- vorsichtige Wiederverbindung bei Status 19, 8 und 133
+- GATT-Dienstsuche
+- sichere Standard-Lesezugriffe
+- Wiederverbindung bei Status 19, 8 und 133
 - Standard-Batteriedienst
-- Diagnoseprotokoll und JSON-Export Schema 3 mit Trennstatus und Schuhklassifizierung
-
-Die Passform- und Lichtoberfläche arbeitet weiterhin als lokale Vorschau. Motor- und LED-Schreibbefehle werden erst aktiviert, sobald das konkrete Steuerprotokoll verifiziert ist.
+- Diagnoseprotokoll und JSON-Export
+- interaktive Passform-, Modus- und Lichtvorschau
 
 ## Installation und Updates
 
-Diese Fassung verwendet das Paket:
+Paketname:
 
 ```text
 de.crazybatto.solelink.control.stable
 ```
 
-Außerdem wird sie mit einem festen, ausschließlich für dieses öffentliche Testprojekt bestimmten Entwicklungsschlüssel signiert. Dadurch lassen sich zukünftige SoleLink-Testversionen über diese Fassung installieren, ohne jedes Mal die App löschen zu müssen. Der Schlüssel ist nicht für eine Veröffentlichung im Play Store oder für produktive Signaturen gedacht.
+Version 0.4.2 kann als Update über 0.4.0 oder 0.4.1 installiert werden, sofern diese Fassungen mit demselben Testschlüssel signiert wurden.
 
 ## Bauen
 
@@ -73,5 +63,3 @@ Voraussetzungen:
 ./gradlew testDebugUnitTest
 ./gradlew assembleDebug
 ```
-
-Der Entwicklungs-Build verwendet `solelink-stable.jks`. Das automatisch erzeugte Quellcode-ZIP lässt diesen Schlüssel bewusst aus; der GitHub-Branch enthält ihn nur, damit reproduzierbare Test-Updates gebaut werden können.
