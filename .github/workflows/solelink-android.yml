@@ -1,4 +1,4 @@
-name: Nike Adapt 2.0 BB CrazyBatto Android
+name: Nike Adapt BB 2.0 CrazyBatto Android
 
 on:
   push:
@@ -7,17 +7,19 @@ on:
     paths:
       - "apps/SoleLinkDiagnostic/**"
       - ".github/workflows/solelink-android.yml"
+      - ".github/patches/solelink-identify-0.5.0.part*"
   pull_request:
     paths:
       - "apps/SoleLinkDiagnostic/**"
       - ".github/workflows/solelink-android.yml"
+      - ".github/patches/solelink-identify-0.5.0.part*"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: solelink-control-${{ github.ref }}
+  group: solelink-identify-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,31 +47,40 @@ jobs:
       - name: Gradle-Cache einrichten
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Sichere Identify-Testquellen 0.5.0 einspielen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/patches/solelink-identify-0.5.0.part* \
+            > /tmp/solelink-identify-0.5.0.tar.gz
+          echo "9301dac9a9618bb7bbf7c898a138b85f955362b1516b4999fdf23a0ca53f89f3  /tmp/solelink-identify-0.5.0.tar.gz" \
+            | sha256sum -c -
+          tar -xzf /tmp/solelink-identify-0.5.0.tar.gz -C .
+
       - name: Entwicklungsschlüssel prüfen
         shell: bash
         run: test -s apps/SoleLinkDiagnostic/solelink-stable.jks
 
-      - name: Einzelschuh-Verbindungslogik anwenden
-        shell: bash
-        run: python3 apps/SoleLinkDiagnostic/tools/apply_single_shoe_logic.py
-
-      - name: Einzelschuh-Oberfläche anwenden
-        shell: bash
-        run: python3 apps/SoleLinkDiagnostic/tools/apply_single_shoe_ui.py
-
-      - name: Einzelschuh- und Startfix prüfen
+      - name: Funktions- und Sicherheitsumfang prüfen
         shell: bash
         run: |
-          grep -F "EINZELSCHUH-MODUS" \
-            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SingleShoeUi.kt
-          grep -F "EIN SCHUH REICHT" \
+          set -euo pipefail
+          grep -F "SICHERER SCHUH-LICHTTEST" \
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt
-          grep -F '"pairRequired", SingleShoePolicy.PAIR_REQUIRED' \
-            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/util/JsonExport.kt
+          grep -F "identifyTransportPacket" \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/BigfootProtocol.kt
+          grep -F "80 14 00 00" apps/SoleLinkDiagnostic/README.md
+          grep -F "versionCode = 9" apps/SoleLinkDiagnostic/app/build.gradle.kts
+          grep -F 'versionName = "0.5.0"' apps/SoleLinkDiagnostic/app/build.gradle.kts
           grep -F "super.onCreate(null)" \
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/MainActivity.kt
           grep -F "!hasAll(context)" \
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/BluetoothPermissions.kt
+          if grep -R -E "fun[[:space:]]+(tighten|loosen|setPosition|setServo|writeFirmware)" \
+              apps/SoleLinkDiagnostic/app/src/main/java; then
+            echo "Unerlaubte Motor- oder Firmware-Funktion gefunden."
+            exit 1
+          fi
 
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
@@ -82,22 +93,23 @@ jobs:
       - name: APK benennen und statisch prüfen
         shell: bash
         run: |
-          APK_NAME="Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk"
+          set -euo pipefail
+          APK_NAME="Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test.apk"
           cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           test -s "$APK_NAME"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_NAME" | tee apk-badging.txt
-          grep -F "application-label:'Nike Adapt 2.0 BB'" apk-badging.txt
-          grep -F "versionName='0.4.4'" apk-badging.txt
+          grep -F "application-label:'Nike Adapt BB 2.0'" apk-badging.txt
+          grep -F "versionName='0.5.0'" apk-badging.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
             --verbose --print-certs "$APK_NAME"
           sha256sum "$APK_NAME" > \
-            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-SHA256.txt
+            Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test-SHA256.txt
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
         run: |
           cd apps
-          zip -qr ../Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-source.zip \
+          zip -qr ../Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test-source.zip \
             SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
             -x "SoleLinkDiagnostic/app/build/*" \
@@ -106,11 +118,11 @@ jobs:
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix
+          name: Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test
           path: |
-            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk
-            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-SHA256.txt
-            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-source.zip
+            Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test.apk
+            Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test-SHA256.txt
+            Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test-source.zip
           if-no-files-found: error
           retention-days: 90
 
@@ -131,7 +143,7 @@ jobs:
             set -euxo pipefail
             PACKAGE="de.crazybatto.solelink.control.stable"
             ACTIVITY="de.crazybatto.solelink.MainActivity"
-            APK="Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk"
+            APK="Nike-Adapt-BB-2.0-CrazyBatto-0.5.0-Identify-Test.apk"
 
             adb install -r "$APK"
             adb shell pm revoke "$PACKAGE" android.permission.BLUETOOTH_SCAN || true
@@ -157,7 +169,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Nike-Adapt-BB-2.0-0.4.4-runtime-test
+          name: Nike-Adapt-BB-2.0-0.5.0-runtime-test
           path: |
             runtime-activity-start.txt
             runtime-pid.txt
