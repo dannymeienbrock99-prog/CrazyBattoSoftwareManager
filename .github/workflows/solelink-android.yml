@@ -74,7 +74,7 @@ jobs:
         working-directory: apps/SoleLinkDiagnostic
         run: ./gradlew --no-daemon assembleDebug
 
-      - name: APK benennen und prüfen
+      - name: APK benennen und statisch prüfen
         shell: bash
         run: |
           APK_NAME="Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk"
@@ -87,6 +87,58 @@ jobs:
             --verbose --print-certs "$APK_NAME"
           sha256sum "$APK_NAME" > \
             Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-SHA256.txt
+
+      - name: Echten App-Start auf Android prüfen
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          script: |
+            set -euxo pipefail
+            PACKAGE="de.crazybatto.solelink.control.stable"
+            ACTIVITY="de.crazybatto.solelink.MainActivity"
+            APK="Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk"
+
+            adb install -r "$APK"
+            adb shell am force-stop "$PACKAGE"
+            adb logcat -c
+            adb shell am start -W -n "$PACKAGE/$ACTIVITY" | tee runtime-activity-start.txt
+            sleep 8
+
+            adb shell pidof "$PACKAGE" | tee runtime-pid.txt
+            test -s runtime-pid.txt
+            adb exec-out screencap -p > runtime-start.png
+            adb shell uiautomator dump /sdcard/runtime-window.xml
+            adb pull /sdcard/runtime-window.xml runtime-window.xml
+            adb logcat -d > runtime-logcat.txt
+
+            if grep -E "FATAL EXCEPTION|Unable to start activity|Process: $PACKAGE" runtime-logcat.txt; then
+              echo "App ist beim Start abgestürzt."
+              exit 1
+            fi
+
+            grep -E "Nike Adapt BB 2.0|EINZELSCHUH-MODUS|EIN SCHUH REICHT" \
+              runtime-window.xml
+
+      - name: Laufzeit-Diagnose immer hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoleLink-runtime-diagnostics
+          path: |
+            runtime-activity-start.txt
+            runtime-pid.txt
+            runtime-start.png
+            runtime-window.xml
+            runtime-logcat.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Vollständigen Projekt-ZIP erzeugen
         shell: bash
