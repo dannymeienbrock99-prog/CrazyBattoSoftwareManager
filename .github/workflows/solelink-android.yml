@@ -59,6 +59,35 @@ jobs:
             | sha256sum -c -
           tar -xzf /tmp/solelink-full-control-1.0.0.tar.gz \
             -C apps/SoleLinkDiagnostic
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("apps/SoleLinkDiagnostic")
+          known = root / "app/src/main/java/de/crazybatto/solelink/ble/KnownShoeRegistry.kt"
+          text = known.read_text(encoding="utf-8")
+          text, count = re.subn(
+              r"enum class ShoeSide \{\n(?:    [A-Z]+,?\n)+\}\n\n",
+              "",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Doppelte ShoeSide-Deklaration konnte nicht entfernt werden.")
+          known.write_text(text, encoding="utf-8")
+
+          gatt = root / "app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt"
+          text = gatt.read_text(encoding="utf-8")
+          text = text.replace(
+              "if (devicePublicKey.isNullOrEmpty()) {",
+              "if (devicePublicKey == null || devicePublicKey.isEmpty()) {",
+          )
+          text = text.replace(
+              "context.deriveAuthKey(devicePublicKey)",
+              "context.deriveAuthKey(requireNotNull(devicePublicKey))",
+          )
+          gatt.write_text(text, encoding="utf-8")
+          PY
           sed -i \
             -e 's/Version 0.6.0/Version 1.0.0/g' \
             -e 's/Version: 0.6.0/Version: 1.0.0/g' \
@@ -103,6 +132,8 @@ jobs:
             "$ROOT/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt"
           grep -F "SOFORT STOPP" \
             "$ROOT/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt"
+          test "$(grep -R -h '^enum class ShoeSide' \
+            "$ROOT/app/src/main/java/de/crazybatto/solelink/ble"/*.kt | wc -l)" -eq 1
           if grep -R -n "ServoCommand.MAX_TIGHTEN" \
               "$ROOT/app/src/main/java/de/crazybatto/solelink/ble/GattInspector.kt" \
               "$ROOT/app/src/main/java/de/crazybatto/solelink/ui/MainViewModel.kt" \
