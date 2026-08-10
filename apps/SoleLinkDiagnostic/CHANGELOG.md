@@ -1,5 +1,16 @@
 # Änderungsprotokoll
 
+## 0.4.4
+
+- Startabsturz einer frischen Installation auf Android 12 und neuer behoben
+- geschützten Bluetooth-Status erst nach erteilter `BLUETOOTH_CONNECT`-Berechtigung abgefragt
+- fehlende Bluetooth-Berechtigung führt jetzt zum Berechtigungsbildschirm statt zum Schließen der App
+- `SecurityException` beim Lesen des Bluetooth-Status zusätzlich abgefangen
+- alte inkompatible Compose-Zustände früherer Testversionen werden beim Start verworfen
+- echten Laufzeittest ergänzt: frische APK ohne Bluetooth-Berechtigung installieren, Activity starten, Prozess prüfen, Logcat auf Absturz untersuchen und Screenshot speichern
+- Einzelschuh-Modus bleibt erhalten; ein linker oder rechter Schuh reicht
+- VersionCode auf 8 und Version auf 0.4.4 erhöht
+
 ## 0.4.3
 
 - ausdrücklichen Einzelschuh-Modus eingeführt
@@ -14,7 +25,6 @@
 - Diagnoseexport auf Schema 4 erweitert
 - Exportfelder `mode=SINGLE_SHOE`, `pairRequired=false` und `minimumRequiredShoes=1`
 - zusätzliche Tests für einzelne rechte, einzelne andere und fehlende Schuhkandidaten
-- VersionCode auf 7 und Version auf 0.4.3 erhöht
 
 ## 0.4.2
 

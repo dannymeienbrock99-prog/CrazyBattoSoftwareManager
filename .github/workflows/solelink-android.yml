@@ -23,6 +23,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Repository auschecken
@@ -56,7 +57,7 @@ jobs:
         shell: bash
         run: python3 apps/SoleLinkDiagnostic/tools/apply_single_shoe_ui.py
 
-      - name: Einzelschuh-Build prüfen
+      - name: Einzelschuh- und Startfix prüfen
         shell: bash
         run: |
           grep -F "EINZELSCHUH-MODUS" \
@@ -65,6 +66,10 @@ jobs:
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ui/SoleLinkApp.kt
           grep -F '"pairRequired", SingleShoePolicy.PAIR_REQUIRED' \
             apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/util/JsonExport.kt
+          grep -F "super.onCreate(null)" \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/MainActivity.kt
+          grep -F "!hasAll(context)" \
+            apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/BluetoothPermissions.kt
 
       - name: Unit-Tests ausführen
         working-directory: apps/SoleLinkDiagnostic
@@ -77,18 +82,18 @@ jobs:
       - name: APK benennen und statisch prüfen
         shell: bash
         run: |
-          APK_NAME="Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk"
+          APK_NAME="Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk"
           cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
           test -s "$APK_NAME"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_NAME" | tee apk-badging.txt
           grep -F "application-label:'Nike Adapt 2.0 BB'" apk-badging.txt
-          grep -F "versionName='0.4.3'" apk-badging.txt
+          grep -F "versionName='0.4.4'" apk-badging.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
             --verbose --print-certs "$APK_NAME"
           sha256sum "$APK_NAME" > \
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-SHA256.txt
+            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-SHA256.txt
 
-      - name: Echten App-Start auf Android prüfen
+      - name: Frische Installation ohne Bluetooth-Berechtigung starten
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -103,11 +108,14 @@ jobs:
             set -euxo pipefail
             PACKAGE="de.crazybatto.solelink.control.stable"
             ACTIVITY="de.crazybatto.solelink.MainActivity"
-            APK="Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk"
+            APK="Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk"
 
             adb install -r "$APK"
+            adb shell pm revoke "$PACKAGE" android.permission.BLUETOOTH_SCAN || true
+            adb shell pm revoke "$PACKAGE" android.permission.BLUETOOTH_CONNECT || true
             adb shell am force-stop "$PACKAGE"
             adb logcat -c
+            adb shell input keyevent 82 || true
             adb shell am start -W -n "$PACKAGE/$ACTIVITY" | tee runtime-activity-start.txt
             sleep 8
 
@@ -123,14 +131,14 @@ jobs:
               exit 1
             fi
 
-            grep -E "Nike Adapt BB 2.0|EINZELSCHUH-MODUS|EIN SCHUH REICHT" \
+            grep -E "Nike Adapt BB 2.0|EINZELSCHUH-MODUS|EIN SCHUH REICHT|Bluetooth-Zugriff erforderlich" \
               runtime-window.xml
 
       - name: Laufzeit-Diagnose immer hochladen
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: SoleLink-runtime-diagnostics
+          name: Nike-Adapt-BB-2.0-0.4.4-runtime-test
           path: |
             runtime-activity-start.txt
             runtime-pid.txt
@@ -144,7 +152,7 @@ jobs:
         shell: bash
         run: |
           cd apps
-          zip -qr ../Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-source.zip \
+          zip -qr ../Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-source.zip \
             SoleLinkDiagnostic \
             -x "SoleLinkDiagnostic/.gradle/*" \
             -x "SoleLinkDiagnostic/app/build/*" \
@@ -153,10 +161,10 @@ jobs:
       - name: APK und Projekt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh
+          name: Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix
           path: |
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh.apk
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-SHA256.txt
-            Nike-Adapt-2.0-BB-CrazyBatto-0.4.3-Einzelschuh-source.zip
+            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix.apk
+            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-SHA256.txt
+            Nike-Adapt-BB-2.0-CrazyBatto-0.4.4-StartFix-source.zip
           if-no-files-found: error
           retention-days: 90

@@ -14,8 +14,8 @@ android {
         applicationId = "de.crazybatto.solelink.control.stable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "0.4.3"
+        versionCode = 8
+        versionName = "0.4.4"
     }
 
     val stableSigning = if (stableKeystore.exists()) {

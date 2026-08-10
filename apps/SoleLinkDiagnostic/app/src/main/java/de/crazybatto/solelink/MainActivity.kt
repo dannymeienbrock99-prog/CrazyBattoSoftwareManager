@@ -59,7 +59,9 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // Test builds changed the Compose saveable-state layout several times.
+        // Discarding an older restored state prevents an update from closing at startup.
+        super.onCreate(null)
         enableEdgeToEdge()
         refreshSystemState()
 
@@ -83,8 +85,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshSystemState() {
-        permissionsGranted = BluetoothPermissions.hasAll(this)
-        bluetoothEnabled = BluetoothPermissions.isBluetoothEnabled(this)
+        val granted = BluetoothPermissions.hasAll(this)
+        permissionsGranted = granted
+        // Never query protected Bluetooth state before Android has granted access.
+        bluetoothEnabled = granted && BluetoothPermissions.isBluetoothEnabled(this)
     }
 
     private fun requestBluetoothPermissions() {

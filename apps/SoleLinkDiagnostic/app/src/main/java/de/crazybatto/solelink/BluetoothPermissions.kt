@@ -25,7 +25,18 @@ object BluetoothPermissions {
         }
 
     fun isBluetoothEnabled(context: Context): Boolean {
-        val manager = context.getSystemService(BluetoothManager::class.java)
-        return manager?.adapter?.isEnabled == true
+        // Android 12+ protects BluetoothAdapter.isEnabled with BLUETOOTH_CONNECT.
+        // A fresh install has not received that permission yet, so accessing the
+        // adapter too early can terminate the Activity before the first screen appears.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasAll(context)) {
+            return false
+        }
+
+        return try {
+            val manager = context.getSystemService(BluetoothManager::class.java)
+            manager?.adapter?.isEnabled == true
+        } catch (_: SecurityException) {
+            false
+        }
     }
 }
