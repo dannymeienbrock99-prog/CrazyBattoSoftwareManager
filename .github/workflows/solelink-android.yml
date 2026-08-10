@@ -1,0 +1,195 @@
+name: Nike Adapt BB 2.0 CrazyBatto 1.0.1 Full Control
+
+on:
+  push:
+    branches:
+      - feature/solelink-adapt-style-0.3.0
+    paths:
+      - "apps/SoleLinkDiagnostic/**"
+      - ".github/workflows/solelink-android.yml"
+      - ".github/patches/solelink-full-control-1.0.0.b64.part*"
+      - ".github/patches/solelink-full-control-1.0.1.b64.part*"
+  pull_request:
+    paths:
+      - "apps/SoleLinkDiagnostic/**"
+      - ".github/workflows/solelink-android.yml"
+      - ".github/patches/solelink-full-control-1.0.0.b64.part*"
+      - ".github/patches/solelink-full-control-1.0.1.b64.part*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: solelink-full-control-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK einrichten
+        uses: android-actions/setup-android@v3
+
+      - name: Android SDK 36 installieren
+        shell: bash
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Gradle-Cache einrichten
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Basisquellen 1.0.0 einspielen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/patches/solelink-full-control-1.0.0.b64.part* \
+            > /tmp/solelink-full-control-1.0.0.b64
+          base64 --decode /tmp/solelink-full-control-1.0.0.b64 \
+            > /tmp/solelink-full-control-1.0.0.tar.gz
+          echo "9e2e7f2f3f9669c44176159c1d4798e143338c6e398023333eeca2be2080d43e  /tmp/solelink-full-control-1.0.0.tar.gz" \
+            | sha256sum -c -
+          tar -xzf /tmp/solelink-full-control-1.0.0.tar.gz \
+            -C apps/SoleLinkDiagnostic
+
+          # Der alte Overlay-Bestand enthielt ShoeSide zweimal. Vor dem neuen
+          # Controller-Overlay wird die zusätzliche Deklaration entfernt.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("apps/SoleLinkDiagnostic")
+          known = root / "app/src/main/java/de/crazybatto/solelink/ble/KnownShoeRegistry.kt"
+          text = known.read_text(encoding="utf-8")
+          text, count = re.subn(
+              r"enum class ShoeSide \{\n(?:    [A-Z]+,?\n)+\}\n\n",
+              "",
+              text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Doppelte ShoeSide-Deklaration konnte nicht entfernt werden.")
+          known.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Robusten Controller 1.0.1 einspielen
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/patches/solelink-full-control-1.0.1.b64.part* \
+            > /tmp/solelink-full-control-1.0.1.b64
+          base64 --decode /tmp/solelink-full-control-1.0.1.b64 \
+            > /tmp/solelink-full-control-1.0.1.tar.gz
+          echo "5c14578ad0fc9929aac750f0e9c747bd671f24d074f2f979dd01c2214e2b5d24  /tmp/solelink-full-control-1.0.1.tar.gz" \
+            | sha256sum -c -
+          tar -xzf /tmp/solelink-full-control-1.0.1.tar.gz \
+            -C apps/SoleLinkDiagnostic
+
+          # Veralteter Schlüssel-Wrapper aus 1.0.0; 1.0.1 verwendet AuthKeyStore.
+          rm -f apps/SoleLinkDiagnostic/app/src/main/java/de/crazybatto/solelink/ble/ShoeAuthKeyStore.kt
+          chmod +x apps/SoleLinkDiagnostic/gradlew
+
+      - name: Entwicklungsschlüssel prüfen
+        shell: bash
+        run: test -s apps/SoleLinkDiagnostic/solelink-stable.jks
+
+      - name: Protokoll, Kopplung und Sicherheitsgrenzen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="apps/SoleLinkDiagnostic"
+          BLE="$ROOT/app/src/main/java/de/crazybatto/solelink/ble"
+          UI="$ROOT/app/src/main/java/de/crazybatto/solelink/ui"
+
+          grep -F "versionCode = 12" "$ROOT/app/build.gradle.kts"
+          grep -F 'versionName = "1.0.1"' "$ROOT/app/build.gradle.kts"
+          test -s "$BLE/BigfootCrypto.kt"
+          test -s "$BLE/ProtoWire.kt"
+          grep -F "1a2328af-3d0b-4b04-a2aa-973c239d3904" "$BLE/BigfootProtocol.kt"
+          grep -F "30c4142f-b083-42cf-865a-d5b91801bcd7" "$BLE/BigfootProtocol.kt"
+          grep -F "226baea6-1543-40c2-8eae-a69b02171b08" "$BLE/BigfootProtocol.kt"
+          grep -F "START_AUTH_KEY_GENERATION = 0x6E" "$BLE/BigfootProtocol.kt"
+          grep -F "EXCHANGE_PUBLIC_KEY = 0x6F" "$BLE/BigfootProtocol.kt"
+          grep -F "START_AUTHENTICATION = 0x70" "$BLE/BigfootProtocol.kt"
+          grep -F "AUTHENTICATION_CHALLENGE = 0x71" "$BLE/BigfootProtocol.kt"
+          grep -F 'MessageDigest.getInstance("MD5")' "$BLE/BigfootCrypto.kt"
+          grep -F 'Cipher.getInstance("AES/ECB/NoPadding")' "$BLE/BigfootCrypto.kt"
+          grep -F "device.createBond()" "$BLE/GattInspector.kt"
+          grep -F "incomingSegmentsSinceFlowAck" "$BLE/GattInspector.kt"
+          grep -F "acknowledgedPrefixLength" "$BLE/BigfootProtocol.kt"
+          grep -F "SHORT_TIGHTEN" "$BLE/GattInspector.kt"
+          grep -F "SHORT_LOOSEN" "$BLE/GattInspector.kt"
+          grep -F "MAX_LOOSEN" "$BLE/GattInspector.kt"
+          grep -F "SAFE_MAX_POSITION_PERCENT = 80" "$BLE/GattInspector.kt"
+          grep -F "ECHTE STEUERUNG BEREIT" "$UI/SoleLinkApp.kt"
+          grep -F "SOFORT STOPP" "$UI/SoleLinkApp.kt"
+          grep -F "Motor-Sicherung" "$UI/RealControlUi.kt"
+
+          test "$(grep -R -h '^enum class ShoeSide' "$BLE"/*.kt | wc -l)" -eq 1
+          test ! -e "$BLE/ShoeAuthKeyStore.kt"
+
+          # MAX_TIGHTEN darf im Protokoll als rekonstruierter Enumwert existieren,
+          # aber nicht von UI, ViewModel oder Inspector aufgerufen werden.
+          if grep -R -n "ServoMove.MAX_TIGHTEN" \
+              "$BLE/GattInspector.kt" \
+              "$UI/MainViewModel.kt" \
+              "$UI/SoleLinkApp.kt" \
+              "$UI/RealControlUi.kt"; then
+            echo "Unsicherer MAX_TIGHTEN-Aufruf gefunden."
+            exit 1
+          fi
+
+      - name: Unit-Tests ausführen
+        working-directory: apps/SoleLinkDiagnostic
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Installierbare APK bauen
+        working-directory: apps/SoleLinkDiagnostic
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: APK benennen und prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_NAME="Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control.apk"
+          cp apps/SoleLinkDiagnostic/app/build/outputs/apk/debug/app-debug.apk "$APK_NAME"
+          test -s "$APK_NAME"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK_NAME" \
+            | tee apk-badging.txt
+          grep -F "application-label:'Nike Adapt BB 2.0'" apk-badging.txt
+          grep -F "versionName='1.0.1'" apk-badging.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+            --verbose --print-certs "$APK_NAME"
+          sha256sum "$APK_NAME" \
+            > Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control-SHA256.txt
+
+      - name: Vollständigen Quellcode-ZIP erzeugen
+        shell: bash
+        run: |
+          cd apps
+          zip -qr ../Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control-source.zip \
+            SoleLinkDiagnostic \
+            -x "SoleLinkDiagnostic/.gradle/*" \
+            -x "SoleLinkDiagnostic/app/build/*" \
+            -x "SoleLinkDiagnostic/solelink-stable.jks"
+
+      - name: APK und Projekt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control
+          path: |
+            Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control.apk
+            Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control-SHA256.txt
+            Nike-Adapt-BB-2.0-CrazyBatto-1.0.1-Full-Control-source.zip
+          if-no-files-found: error
+          retention-days: 90
